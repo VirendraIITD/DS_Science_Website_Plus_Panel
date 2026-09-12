@@ -1,0 +1,977 @@
+// DS Science Academy — data model
+// Mirrors PRD §5. Tier markers: [E] = Elite (and Pro), [P] = Pro only.
+// Pro-only models stay in the schema for both tiers so that upgrading an Elite
+// install to Pro is an env-var flip, not a migration (PRD §0 "Order").
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Pooled connection (Supabase Supavisor, port 6543). Every runtime query
+  // goes through this so a serverless/container restart cannot exhaust the
+  // database's connection slots.
+  url      = env("DATABASE_URL")
+  // Direct connection (port 5432). Prisma needs an unpooled link to run
+  // migrations; a transaction pooler cannot hold the advisory locks they use.
+  // On a plain self-hosted Postgres, point both at the same URL.
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum CourseCategory {
+  NEET
+  JEE
+  FOUNDATION
+  BOARD
+}
+
+enum NewsType {
+  NOTICE
+  EVENT
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum BannerStatus {
+  LIVE
+  HIDDEN
+}
+
+enum DownloadCategory {
+  BROCHURE
+  SYLLABUS
+  PYQ
+  OTHER
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  DEMO
+  ADMITTED
+  LOST
+}
+
+enum LeadSource {
+  WEBSITE
+  WHATSAPP
+  WALK_IN
+  REFERRAL
+  PHONE
+  IMPORT
+  OTHER
+}
+
+enum PackageType {
+  RECORDED
+  LIVE
+  TEST_SERIES
+}
+
+enum ClassLevel {
+  ELEMENTARY
+  CLASS_6
+  CLASS_7
+  CLASS_8
+  CLASS_9
+  CLASS_10
+  CLASS_11
+  CLASS_12
+  /// Deprecated — "Dropper" no longer appears anywhere on the site. Kept
+  /// only so courses/packages already tagged with it don't break; filtered
+  /// out of every public/admin render via HIDDEN_CLASS_LEVELS in lib/format.ts.
+  DROPPER
+  /// Superseded by the explicit CLASS_6..CLASS_10 values above — kept only
+  /// so existing courses tagged with the old generic "Foundation" bucket
+  /// don't break. Not offered as a choice in the admin form any more.
+  FOUNDATION
+}
+
+enum DemoMode {
+  ONLINE
+  CENTRE
+}
+
+enum DemoStatus {
+  UPCOMING
+  DONE
+  NO_SHOW
+  CANCELLED
+}
+
+enum BranchStatus {
+  ACTIVE
+  SETUP
+  CLOSED
+}
+
+enum StaffRoleName {
+  SUPER_ADMIN
+  COUNSELLOR
+  EDITOR
+}
+
+enum BroadcastChannel {
+  WHATSAPP
+  SMS
+}
+
+enum BroadcastStatus {
+  DRAFT
+  QUEUED
+  SENT
+  FAILED
+  SIMULATED
+}
+
+// ---------------------------------------------------------------------------
+// [E] Site-wide settings — single row (id = 1), edited from Admin › Settings
+// ---------------------------------------------------------------------------
+
+model SiteSettings {
+  id             Int      @id @default(1)
+  instituteName  String   @default("DS Science Academy")
+  tagline        String   @default("Trusted NEET, JEE & Foundation coaching — Gangapur City.")
+  about          String   @default("")
+  address        String   @default("Gangapur City, Rajasthan")
+  city           String   @default("Gangapur City")
+  state          String   @default("Rajasthan")
+  pincode        String   @default("")
+  phones         String[] @default([])
+  emails         String[] @default([])
+  whatsappNumber String   @default("")
+  mapEmbed       String   @default("")
+  officeHours    String   @default("9:00 am – 7:00 pm, Monday to Saturday")
+
+  // Page copy blocks that used to be hardcoded in the page templates.
+  demoIntro      String @default("")
+  demoParentNote String @default("")
+  predictorNote  String @default("")
+
+  // Home page — bottom "Admissions are open" CTA section.
+  admHeading String   @default("Admissions are open for 2026-27")
+  admNote    String   @default("Leave your number and someone from the office will call you back — usually the same day. You can also simply walk in; the front desk is open 9 am to 7 pm.")
+  admPoints  String[] @default(["Free demo class before you decide", "Fees payable in 2 or 3 instalments", "Scholarship test — up to 100% fee waiver", "Hostel & PG guidance for outstation families"])
+
+  // Courses listing page — header stats, the "what's included" checklist,
+  // and the bottom "Still not sure" CTA, all previously hardcoded.
+  coursesStatBatchSize   String   @default("40")
+  coursesStatEnrolled    String   @default("2,500+")
+  coursesStatSelections  String   @default("184")
+  coursesIncludePoints   String[] @default(["Printed modules for every subject", "Daily Practice Sheets (DPP)", "Previous year question book", "Weekly tests with detailed analysis", "Doubt counter, open all day", "Monthly parent report", "Library & reading room, 8 am – 8 pm", "Fees payable in 2 or 3 instalments"])
+  coursesCtaHeading      String   @default("Still not sure which one?")
+  coursesCtaNote         String   @default("Come and sit through a free demo class. Attend the batch you are considering, meet the teacher, and decide after — not before. No fee, no obligation.")
+  coursesCtaPoints       String[] @default(["Free demo class, any batch", "Honest advice, even if it is \"wait a year\"", "Scholarship test — up to 100% fee waiver", "Sibling discount of 10% on the second admission"])
+
+  // Results page — bottom "Next year, your name could be on this page" CTA.
+  resultsAdmHeading String @default("Next year, your name could be on this page.")
+  resultsAdmNote    String @default("Admissions for 2026-27 are open. Batches are capped at 40 and they fill in the order admissions are confirmed. Leave your number and the office will call you back — usually the same day.")
+
+  // Results page — the 4 stat-strip numbers (Total/NEET/JEE selections, Years
+  // of results). Left blank, each falls back to a live count from the Topper
+  // rows — not every selection has to have a Topper card uploaded for the
+  // count to be right, so an admin can override any of these manually.
+  resultsStatTotalOverride String @default("")
+  resultsStatNeetOverride  String @default("")
+  resultsStatJeeOverride   String @default("")
+  resultsStatYearsOverride String @default("")
+
+  // Home page — small "From the Director's Desk" banner, links through to
+  // the Founders page.
+  directorDeskEnabled  Boolean @default(false)
+  directorDeskHeading  String  @default("From the Director's Desk")
+  directorDeskNote     String  @default("A short word from the people who built this place.")
+  directorDeskPhotoUrl String  @default("")
+  directorDeskCtaLabel String  @default("Meet our founders")
+  directorDeskCtaHref  String  @default("/founders")
+
+  // Careers page — header stats and bottom "Become part of the team" CTA.
+  careersStatSince    String   @default("2014")
+  careersStatTeamSize String   @default("18+")
+  careersAdmHeading   String   @default("Become part of the team.")
+  careersAdmNote      String   @default("Whether you're experienced faculty or just starting out — if you enjoy working with children, we'd like to talk. Send your resume below, or email it directly.")
+  careersAdmPoints    String[] @default(["Every application gets a reply", "No application fee", "Screening call within 3-4 days", "Resume: careers@dsscienceacademy.com"])
+
+  // Predictor page — bottom "Want the full picture?" CTA.
+  predictorAdmHeading String   @default("Want the full picture?")
+  predictorAdmNote    String   @default("A rank-to-college estimate is just the start. Our counsellors walk you through every round, every quota and every backup option — the same way we do for our own students.")
+  predictorAdmPoints  String[] @default(["Round-wise college & branch list", "State quota + All-India quota explained", "Choice-filling help, not just a prediction", "Free first counselling call"])
+
+  // Demo page — bottom "See a class before you commit" CTA.
+  demoAdmHeading String   @default("See a class before you commit.")
+  demoAdmNote    String   @default("This is the same offer we make every family — sit in one real class, then decide. Most parents tell us this is what actually convinced them, not the brochure.")
+  demoAdmPoints  String[] @default(["Completely free, no obligation", "Same class the batch attends — nothing staged", "Confirmed the same day, usually within hours", "Parents welcome to sit in"])
+
+  // FAQ page — bottom "Got a question, just ask" CTA.
+  faqAdmHeading String @default("Got a question? Just ask.")
+  faqAdmNote    String @default("Not every question has an answer on the website. Leave your number — a counsellor will call and talk it through, and if our institute isn't the right fit for your child, they'll tell you that honestly too.")
+
+  // About page — bottom "Come and check for yourself" CTA.
+  aboutAdmHeading String   @default("Come and check for yourself.")
+  aboutAdmNote    String   @default("Everything on this page is easy to claim and easy to verify. Walk in, ask to see a classroom mid-class, talk to a student who is not being supervised, ask the office for last year's result list. We would rather you checked.")
+  aboutAdmPoints  String[] @default(["Free demo class, any batch", "Meet the teacher who would take your batch", "Ask for the full result list — we will hand it over", "No pressure to decide on the day"])
+
+  // Gallery page — bottom "Better still, come and see it" CTA.
+  galleryAdmHeading String @default("Better still — come and see it.")
+  galleryAdmNote    String @default("Photographs are taken on the good days. Walk in on an ordinary one, sit through a class, and see the place as it actually runs.")
+
+  // Facilities page — bottom "Photos only say so much" CTA.
+  facilitiesAdmHeading String @default("Photos only say so much.")
+  facilitiesAdmNote    String @default("Come and walk through the building. See the classrooms with students in them, look at the library at 7 pm, ask the doubt counter a question. Fifteen minutes settles more than any brochure.")
+
+  // Home page — "DS Stars" moving video-story marquee (Allen-style).
+  starsHeading    String @default("DS Stars")
+  starsSubheading String @default("Uncover the Journey to Rise and Shine")
+  starsCtaLabel   String @default("Watch Videos")
+  starsCtaHref    String @default("/gallery")
+
+  // Downloads page — bottom "check your score" CTA.
+  downloadsAdmHeading String @default("Solved the paper and want to check your score?")
+  downloadsAdmNote    String @default("Download the answer key, mark your own paper, and then come and talk to us about what the score actually means for your rank and your college. That conversation is free too.")
+
+  // Admissions page — hero, header stats, "what to bring" list, and bottom CTA.
+  admissionsHeading            String   @default("Admissions 2026-27 are open")
+  admissionsIntro              String   @default("No entrance exam to get in, no donation, no capitation fee. Every batch is capped at 40 and seats go in the order admissions are confirmed — that is the only rush there is.")
+  admissionsStatSeatsPerBatch  String   @default("40")
+  admissionsStatFeeInstalments String   @default("2 or 3")
+  admissionsWhatToBring        String[] @default(["Last school marksheet (photocopy + original to show)", "Aadhaar card of the student (photocopy)", "Aadhaar card of a parent or guardian", "Two passport-size photographs", "Transfer certificate, if you have one", "First fee instalment — cash, UPI or card"])
+  admissionsAdmHeading         String   @default("Start with a free demo class.")
+  admissionsAdmNote            String   @default("The honest way to decide is to sit in one. Attend a full session with the batch you are considering, watch how the teacher handles a doubt, then make up your mind. If it is not for you, we will say so ourselves.")
+  admissionsAdmPoints          String[] @default(["A real class, not a sales demo", "Parents can sit in", "Free, and no obligation after", "Fee and batch explained in the same visit"])
+
+  // Faculty page — header stat and bottom "Meet them before you decide" CTA.
+  facultyStatStudentsPerTeacher String   @default("40")
+  facultyAdmHeading             String   @default("Meet them before you decide.")
+  facultyAdmNote                String   @default("Book a free demo class and sit through a real session with the teacher who would be taking your batch. Ask whatever you want afterwards. No fee, no obligation, no sales pitch.")
+  facultyAdmPoints              String[] @default(["Attend a full class, not a trial lecture", "Meet the subject teacher in person", "Parents are welcome to sit in", "Decide after, not before"])
+
+  // Home page — Allen-style offer popup, shown once per browser session.
+  offerPopupEnabled  Boolean   @default(false)
+  offerPopupKicker   String    @default("ADMISSIONS OPEN")
+  offerPopupHeadline String    @default("Limited-time admission offer")
+  offerPopupDiscount String    @default("20% OFF")
+  offerPopupNote     String    @default("Enrol before the offer ends and lock in the discounted fee.")
+  offerPopupCtaLabel String    @default("Enrol Now")
+  offerPopupCtaHref  String    @default("/admissions")
+  offerPopupExpiry   DateTime?
+
+  facebookUrl  String @default("")
+  instagramUrl String @default("")
+  youtubeUrl   String @default("")
+  twitterUrl   String @default("")
+  linkedinUrl  String @default("")
+  snapchatUrl  String @default("")
+
+  logoUrl      String @default("")
+  faviconUrl   String @default("")
+  primaryColor String @default("#0f2149")
+  accentColor  String @default("#e0a11a")
+
+  // SEO defaults (PRD §9)
+  seoTitle       String @default("DS Science Academy — NEET, JEE & Foundation Coaching, Gangapur City")
+  seoDescription String @default("")
+  seoKeywords    String @default("")
+  ogImageUrl     String @default("")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ---------------------------------------------------------------------------
+// [E] Home-page building blocks
+// ---------------------------------------------------------------------------
+
+/// Editable numbers in the home stats strip (PRD §6.1).
+model StatItem {
+  id     String  @id @default(cuid())
+  label  String
+  value  String
+  icon   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("stat_items")
+}
+
+/// "Why choose us" cards (PRD §6.1).
+model WhyPoint {
+  id       String  @id @default(cuid())
+  title    String
+  body     String  @default("")
+  icon     String  @default("")
+  imageUrl String  @default("")
+  order    Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([order])
+  @@map("why_points")
+}
+
+/// Steps shown on the Admissions page ("How admission works").
+model AdmissionStep {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("admission_steps")
+}
+
+/// "What to expect" checklist on the Book-a-Demo page.
+model DemoHighlight {
+  id     String  @id @default(cuid())
+  text   String
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("demo_highlights")
+}
+
+model Testimonial {
+  id           String  @id @default(cuid())
+  name         String
+  role         String  @default("")
+  photoUrl     String  @default("")
+  quote        String
+  youtubeId    String  @default("")
+  /// Manual override for the "Watch Now" card thumbnail. When blank, the
+  /// public site falls back to YouTube's own thumbnail for youtubeId, then
+  /// photoUrl, then initials — see TestimonialVideos.tsx.
+  thumbnailUrl String  @default("")
+  order        Int     @default(0)
+  active       Boolean @default(true)
+
+  @@index([order])
+  @@map("testimonials")
+}
+
+/// Founders / leadership page — photo, name, role and a short quote each.
+model Founder {
+  id       String  @id @default(cuid())
+  name     String
+  photoUrl String  @default("")
+  role     String  @default("")
+  quote    String  @default("")
+  order    Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([order])
+  @@map("founders")
+}
+
+/// Facilities page (PRD §6.2).
+model Facility {
+  id          String  @id @default(cuid())
+  title       String
+  description String  @default("")
+  imageUrl    String  @default("")
+  icon        String  @default("")
+  order       Int     @default(0)
+  active      Boolean @default(true)
+
+  @@index([order])
+  @@map("facilities")
+}
+
+// ---------------------------------------------------------------------------
+// [E] Core content
+// ---------------------------------------------------------------------------
+
+model Course {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  category    CourseCategory
+  classLevels ClassLevel[]   @default([])
+  tagline     String         @default("")
+  description String         @default("")
+  imageUrl    String         @default("")
+  highlights  String[]       @default([])
+  order       Int            @default(0)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  packages CoursePackage[]
+
+  @@index([order])
+  @@index([category])
+  @@map("courses")
+}
+
+// One row of the "Which course is for you?" table on the Courses listing page.
+model CourseFitRow {
+  id        String   @id @default(cuid())
+  who       String
+  take      String
+  starts    String   @default("")
+  duration  String   @default("")
+  fee       String   @default("")
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@map("course_fit_rows")
+}
+
+model Topper {
+  id          String   @id @default(cuid())
+  name        String
+  photoUrl    String   @default("")
+  exam        String
+  rankOrScore String  @default("")
+  categoryRank String  @default("")
+  year        Int
+  address     String   @default("")
+  quote       String   @default("")
+  storyTag    String   @default("")
+  order       Int      @default(0)
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([year])
+  @@index([order])
+  @@map("toppers")
+}
+
+model Popup {
+  id           String   @id @default(cuid())
+  title        String
+  type         String   @default("CONTENT")
+  imageUrl     String   @default("")
+  imageHref    String   @default("")
+  heading      String   @default("")
+  body         String   @default("")
+  ctaLabel     String   @default("")
+  ctaHref      String   @default("")
+  pages        String[] @default([])
+  delaySeconds Int      @default(2)
+  order        Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([order])
+  @@map("popups")
+}
+
+model Faculty {
+  id              String   @id @default(cuid())
+  name            String
+  photoUrl        String   @default("")
+  subject         String
+  qualification   String   @default("")
+  experienceYears Int      @default(0)
+  bio             String   @default("")
+  order           Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([order])
+  @@map("faculty")
+}
+
+/// "What we do about safety" cards on the Facilities page.
+model SafetyPoint {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  icon   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("safety_points")
+}
+
+/// Row of the "Current openings" table on the Careers page.
+model JobOpening {
+  id         String  @id @default(cuid())
+  position   String
+  department String  @default("")
+  type       String  @default("Full-time")
+  experience String  @default("")
+  status     String  @default("")
+  seatClass  String  @default("ok")
+  filled     Boolean @default(false)
+  order      Int     @default(0)
+  active     Boolean @default(true)
+
+  @@index([order])
+  @@map("job_openings")
+}
+
+/// "Why work with us" cards on the Careers page.
+model CareerReason {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  icon   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("career_reasons")
+}
+
+/// Row of the "How to apply" 4-step process on the Careers page.
+model CareerStep {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("career_steps")
+}
+
+/// FAQ shown on the Rank Predictor page (kept separate from the site-wide
+/// Faq model so it doesn't also surface on the general /faq page).
+model PredictorFaq {
+  id       String  @id @default(cuid())
+  question String
+  answer   String  @default("")
+  order    Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([order])
+  @@map("predictor_faqs")
+}
+
+/// FAQ shown on the Free Sample Test page (kept separate from the site-wide
+/// Faq model for the same reason as PredictorFaq).
+model SampleTestFaq {
+  id       String  @id @default(cuid())
+  question String
+  answer   String  @default("")
+  order    Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([order])
+  @@map("sample_test_faqs")
+}
+
+/// Row of the "How it works" 3-step process on the Demo page.
+model DemoStep {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("demo_steps")
+}
+
+/// "How we do this" cards on the Downloads page.
+model DownloadHighlight {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  icon   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("download_highlights")
+}
+
+/// Row of the "Who can join which batch" eligibility table on the Admissions page.
+model EligibilityRow {
+  id     String  @id @default(cuid())
+  batch  String
+  who    String
+  timing String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("eligibility_rows")
+}
+
+/// "Why this matters more than it sounds" cards on the Faculty page.
+model FacultyReason {
+  id     String  @id @default(cuid())
+  title  String
+  body   String  @default("")
+  icon   String  @default("")
+  order  Int     @default(0)
+  active Boolean @default(true)
+
+  @@index([order])
+  @@map("faculty_reasons")
+}
+
+model News {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  title     String
+  type      NewsType      @default(NOTICE)
+  body      String        @default("")
+  imageUrl  String        @default("")
+  date      DateTime      @default(now())
+  status    PublishStatus @default(DRAFT)
+  pinned    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status, date])
+  @@map("news")
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String   @default("")
+  album     String   @default("General")
+  youtubeId String   @default("")
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([album, order])
+  @@map("gallery_items")
+}
+
+model Download {
+  id             String           @id @default(cuid())
+  title          String
+  category       DownloadCategory @default(BROCHURE)
+  fileUrl        String
+  fileSizeKb     Int              @default(0)
+  downloadsCount Int              @default(0)
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([category])
+  @@map("downloads")
+}
+
+model Banner {
+  id        String       @id @default(cuid())
+  title     String
+  subtitle  String       @default("")
+  imageUrl  String       @default("")
+  link      String       @default("")
+  ctaLabel  String       @default("")
+  order     Int          @default(0)
+  status    BannerStatus @default(LIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([status, order])
+  @@map("banners")
+}
+
+// ---------------------------------------------------------------------------
+// [E] Leads — the Enquiry model carries the [P] CRM fields; Elite simply does
+// not expose them (PRD §5 "Lead extras").
+// ---------------------------------------------------------------------------
+
+model Enquiry {
+  id      String     @id @default(cuid())
+  name    String
+  phone   String
+  email   String     @default("")
+  course  String     @default("")
+  classOf String     @default("")
+  city    String     @default("")
+  source  LeadSource @default(WEBSITE)
+  message String     @default("")
+
+  // [P] CRM extras
+  stage        LeadStage @default(NEW)
+  assignedToId String?
+  followUpDate DateTime?
+
+  branchId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo AdminUser?  @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+  branch     Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  notes      LeadNote[]
+
+  @@index([stage])
+  @@index([createdAt])
+  @@index([assignedToId])
+  @@map("enquiries")
+}
+
+/// [P] Free-text notes on a lead.
+model LeadNote {
+  id        String   @id @default(cuid())
+  enquiryId String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  enquiry Enquiry    @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  author  AdminUser? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([enquiryId, createdAt])
+  @@map("lead_notes")
+}
+
+// ---------------------------------------------------------------------------
+// [E] Admin users. Elite seeds exactly one; [P] adds more with RBAC.
+// ---------------------------------------------------------------------------
+
+model AdminUser {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         StaffRoleName @default(SUPER_ADMIN)
+  active       Boolean       @default(true)
+  // Independent of role — a per-person toggle so any staff account can also
+  // get the Mentora Counselling panel link, on top of whatever their normal
+  // role already gives them (see admin/layout.tsx, Staff & Roles form).
+  counsellingAccess Boolean  @default(false)
+  lastLoginAt  DateTime?
+  previousLoginAt DateTime?
+  // Distinct from lastLoginAt/previousLoginAt: those only rotate on a fresh
+  // /api/auth/login POST, which barely happens when a session stays valid
+  // for days (AUTH_SESSION_HOURS) — someone active every day without ever
+  // re-entering a password kept seeing "first time" / stale gaps on the
+  // welcome banner. These rotate once per IST calendar day of real usage
+  // instead, from admin/layout.tsx.
+  lastActiveAt     DateTime?
+  previousActiveAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  assignedLeads Enquiry[]   @relation("AssignedLeads")
+  notes         LeadNote[]
+  sessions      Session[]
+  broadcasts    Broadcast[]
+  auditLogs     AuditLog[]
+
+  @@map("admin_users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// [P] Permission overrides per role. Absent row = built-in defaults apply.
+model StaffRole {
+  id          String        @id @default(cuid())
+  role        StaffRoleName @unique
+  label       String
+  permissions String[]      @default([])
+  updatedAt   DateTime      @updatedAt
+
+  @@map("staff_roles")
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  userId   String?
+  action   String
+  resource String
+  recordId String   @default("")
+  detail   String   @default("")
+  at       DateTime @default(now())
+
+  user AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([at])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// [P] Pro-only modules
+// ---------------------------------------------------------------------------
+
+model CoursePackage {
+  id              String      @id @default(cuid())
+  courseId        String
+  title           String
+  type            PackageType @default(RECORDED)
+  classLevel      ClassLevel  @default(CLASS_11)
+  startDate       DateTime?
+  durationLabel   String      @default("")
+  features        String[]    @default([])
+  priceOriginal   Int         @default(0)
+  priceDiscounted Int         @default(0)
+  discountPct     Int         @default(0)
+  highlight       Boolean     @default(false)
+  order           Int         @default(0)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, classLevel, order])
+  @@map("course_packages")
+}
+
+model DemoBooking {
+  id          String     @id @default(cuid())
+  studentName String
+  phone       String
+  email       String     @default("")
+  course      String     @default("")
+  date        DateTime
+  mode        DemoMode   @default(ONLINE)
+  status      DemoStatus @default(UPCOMING)
+  notes       String     @default("")
+  branchId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([status])
+  @@map("demo_bookings")
+}
+
+model BlogPost {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  category       String        @default("General")
+  coverUrl       String        @default("")
+  excerpt        String        @default("")
+  body           String        @default("")
+  seoTitle       String        @default("")
+  seoDescription String        @default("")
+  status         PublishStatus @default(DRAFT)
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+  @@map("blog_posts")
+}
+
+model Faq {
+  id       String  @id @default(cuid())
+  question String
+  answer   String
+  category String  @default("General")
+  order    Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([category, order])
+  @@map("faqs")
+}
+
+model Branch {
+  id            String       @id @default(cuid())
+  name          String
+  city          String
+  address       String       @default("")
+  phone         String       @default("")
+  email         String       @default("")
+  studentsCount Int          @default(0)
+  mapEmbed      String       @default("")
+  imageUrl      String       @default("")
+  isMain        Boolean      @default(false)
+  status        BranchStatus @default(ACTIVE)
+  order         Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  enquiries Enquiry[]
+  demos     DemoBooking[]
+
+  @@index([order])
+  @@map("branches")
+}
+
+/// Cutoff rows that power the public Rank / College Predictor (PRD §6.3).
+model PredictorCutoff {
+  id          String   @id @default(cuid())
+  exam        String
+  college     String
+  courseName  String   @default("MBBS")
+  state       String   @default("")
+  category    String   @default("General")
+  quota       String   @default("All India")
+  closingRank Int
+  year        Int
+  createdAt   DateTime @default(now())
+
+  @@index([exam, year, category, quota])
+  @@index([closingRank])
+  @@map("predictor_cutoffs")
+}
+
+model Broadcast {
+  id          String           @id @default(cuid())
+  channel     BroadcastChannel @default(WHATSAPP)
+  segment     String
+  message     String
+  recipients  Int              @default(0)
+  sentCount   Int              @default(0)
+  failedCount Int              @default(0)
+  status      BroadcastStatus  @default(DRAFT)
+  error       String           @default("")
+  createdById String?
+  createdAt   DateTime         @default(now())
+  sentAt      DateTime?
+
+  createdBy AdminUser? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("broadcasts")
+}
+
+/// [P] First-party page-view counter behind the Analytics dashboard, so the
+/// panel shows real numbers even before Google Analytics is wired up.
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String   @default("")
+  sessionId String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@map("page_views")
+}
+
+/// Simple IP+scope counter for public-form rate limiting (PRD §9).
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  scope     String
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([scope, ip, createdAt])
+  @@map("rate_limit_hits")
+}
