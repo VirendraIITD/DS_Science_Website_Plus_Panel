@@ -1,0 +1,49 @@
+# DS Science Academy — runs on DS's own server (PRD §2, §10).
+# Bring it up with:  docker compose up -d --build
+# Then seed once:    docker compose exec web npm run setup
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ds_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-ds_academy}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # Nightly dumps land here; point your off-site backup at this folder.
+      - ./backups:/backups
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-ds_user} -d ${POSTGRES_DB:-ds_academy}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Not published to the host — only the app container reaches it.
+    expose:
+      - '5432'
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Local Postgres needs no pooler, so both URLs are the same.
+      # Using Supabase instead? Delete these two lines and the `db` service,
+      # drop the depends_on block, and set DATABASE_URL + DIRECT_URL in .env.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ds_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ds_academy}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-ds_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ds_academy}?schema=public
+    volumes:
+      # Uploaded images and PDFs must survive a rebuild.
+      - uploads:/app/public/uploads
+    ports:
+      # Bound to localhost; Nginx/Caddy terminates TLS and proxies to it.
+      - '127.0.0.1:3100:3100'
+
+volumes:
+  db_data:
+  uploads:
