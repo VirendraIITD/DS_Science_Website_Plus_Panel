@@ -1,0 +1,22 @@
+app/node_modules/
+app/.next/
+app/out/
+app/build/
+app/dist/
+app/.env
+app/.env.local
+app/.env.*.local
+app/*.log
+app/npm-debug.log*
+app/.DS_Store
+app/Thumbs.db
+app/next-env.d.ts
+app/tsconfig.tsbuildinfo
+
+# Local-only utility scripts — never commit secrets.
+imagekit_upload_secret.txt
+imagekit_urls.csv
+
+# Drop-in folder for the bulk ImageKit uploader — photos themselves stay local.
+photos_to_upload/*
+!photos_to_upload/.gitkeep

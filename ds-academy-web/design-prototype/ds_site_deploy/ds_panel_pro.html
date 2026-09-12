@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DS Science Academy — Pro Website Prototype Panel</title>
+<style>
+  :root{--navy:#0f2149;--line:#e6eaf2;--bg:#f4f6fb;--ink:#1f2a44;--mut:#6b7794;--blue:#2563eb;--gold:#e0a11a;--green:#1e9e5a;--red:#e0483d;--purp:#7c3aed;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+  body{background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .side{width:256px;background:var(--navy);color:#cdd6ea;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:20px 18px;border-bottom:1px solid #22335f}
+  .brand .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#8b5cf6,#2f4d9e);display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;vertical-align:middle}
+  .brand b{color:#fff;font-size:15px;margin-left:9px;vertical-align:middle}
+  .brand small{display:block;color:#8fa0c8;font-size:10.5px;margin-top:6px;letter-spacing:.5px}
+  .plan{display:inline-block;margin-top:9px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px}
+  .nav{padding:8px 10px;flex:1;overflow:auto}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#c2cce4;text-decoration:none;font-size:13px;cursor:pointer;margin-bottom:1px}
+  .nav a .ic{width:19px;text-align:center;font-size:15px}
+  .nav a:hover{background:#1c2c5c;color:#fff}
+  .nav a.active{background:var(--blue);color:#fff;font-weight:600}
+  .nav a .pro{margin-left:auto;background:#3a2a66;color:#c9b6ff;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:6px;letter-spacing:.5px}
+  .nav .sec{color:#6f7fa8;font-size:9.5px;letter-spacing:1.5px;padding:12px 12px 5px}
+  .side .foot{padding:11px 16px;border-top:1px solid #22335f;font-size:11px;color:#8fa0c8}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .top{background:#fff;border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+  .top h1{font-size:19px;font-weight:700}.top .r{display:flex;align-items:center;gap:14px}
+  .search{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;width:220px;color:var(--mut)}
+  .av{width:34px;height:34px;border-radius:50%;background:var(--gold);color:#3a2a00;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .wrap{padding:22px 26px}
+  .page{display:none}.page.show{display:block;animation:f .2s ease}@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px 17px}
+  .stat .n{font-size:24px;font-weight:800;color:var(--navy)}.stat .l{font-size:12px;color:var(--mut);margin-top:3px}.stat .ic{float:right;font-size:19px}.stat .up{font-size:11px;color:var(--green);font-weight:700}
+  .grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:15px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px}
+  .card h3{font-size:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .btn.gh{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.g{background:var(--green)}.btn.p{background:var(--purp)}.btn.sm{padding:5px 10px;font-size:11.5px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px;border-bottom:1px solid var(--line)}
+  td{padding:10px 8px;border-bottom:1px solid #f0f2f7}tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .pill.g{background:#e6f6ed;color:var(--green)}.pill.b{background:#e8eefc;color:var(--blue)}.pill.y{background:#fdf3dd;color:#9a6b00}.pill.r{background:#fdeceb;color:var(--red)}.pill.p{background:#f0e9ff;color:var(--purp)}
+  .chip{display:inline-flex;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;margin:0 6px 6px 0}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs .t{padding:7px 15px;border:1px solid var(--line);border-radius:20px;font-size:12.5px;cursor:pointer;background:#fff;font-weight:600;color:var(--mut)}
+  .tabs .t.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+  .pkg{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px;position:relative}
+  .pkg .bdg{font-size:10px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:6px}
+  .bdg.rec{background:#eef2ff;color:var(--blue)}.bdg.live{background:#fdeceb;color:var(--red)}.bdg.test{background:#e6f6ed;color:var(--green)}
+  .pkg h4{font-size:15.5px;margin:10px 0 3px}.pkg .ph{font-size:11.5px;color:var(--mut)}
+  .pkg ul{list-style:none;margin:11px 0;font-size:12.5px;color:var(--ink)}.pkg li{padding:3px 0}.pkg li:before{content:"✓ ";color:var(--green);font-weight:800}
+  .pkg .pr{font-size:20px;font-weight:800;color:var(--navy)}.pkg .pr s{font-size:13px;color:var(--mut);font-weight:400;margin-right:6px}.pkg .off{color:var(--green);font-size:11px;font-weight:700}
+  .kb{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .col{background:var(--bg);border-radius:12px;padding:10px}
+  .col h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:9px;display:flex;justify-content:space-between}
+  .lead{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:8px;font-size:12.5px}
+  .lead b{font-size:13px}.lead small{color:var(--mut);display:block;margin-top:2px}
+  .bars{display:flex;align-items:flex-end;gap:12px;height:150px;padding-top:10px}
+  .bar{flex:1;background:linear-gradient(180deg,#4f7bf0,#2563eb);border-radius:6px 6px 0 0;position:relative;min-height:8px}
+  .bar span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--mut)}
+  .bar b{position:absolute;top:-18px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--navy)}
+  .fac{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .fc{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px;text-align:center}
+  .fc .ph{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#dfe6f5,#c3d0ee);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:21px}
+  .fc b{font-size:13px}.fc small{color:var(--mut);font-size:11px;display:block;margin-top:2px}
+  .gal{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.gi{aspect-ratio:4/3;background:linear-gradient(135deg,#e7ecf7,#d3ddf0);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:23px;color:#8ea3cf}
+  .pred{background:linear-gradient(135deg,#0f2149,#25306b);color:#fff;border-radius:13px;padding:20px}
+  .pred input{max-width:200px;margin:10px 0}
+  .predout{background:#fff;color:var(--ink);border-radius:10px;padding:12px;margin-top:12px;font-size:13px}
+  .acc .q{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:640px}.form .full{grid-column:1/3}
+  label{font-size:12px;color:var(--mut);display:block;margin-bottom:5px;font-weight:600}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;background:#fff;color:var(--ink)}
+  .empty{text-align:center;padding:44px 20px;color:var(--mut)}.empty .big{font-size:38px;margin-bottom:10px}
+  .soon{display:inline-block;background:var(--gold);color:#3a2a00;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;transition:.3s;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.2)}#toast.show{transform:translateX(-50%) translateY(0)}
+  .demo{position:fixed;top:9px;right:14px;background:#f0e9ff;color:var(--purp);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;z-index:30;border:1px solid #d9c9f7}
+  @media(max-width:950px){.stats,.pkgs,.kb{grid-template-columns:repeat(2,1fr)}.grid2,.fac,.gal,.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="demo">● PRO · Prototype</div>
+<aside class="side">
+  <div class="brand"><span class="logo">DS</span><b>DS Science Academy</b>
+    <small>ADMIN PANEL · powered by Mentora</small><span class="plan">✦ PRO PLAN</span></div>
+  <nav class="nav" id="nav">
+    <div class="sec">MAIN</div>
+    <a data-p="dash" class="active"><span class="ic">📊</span> Dashboard</a>
+    <a data-p="analytics"><span class="ic">📈</span> Analytics <span class="pro">PRO</span></a>
+    <a data-p="toppers"><span class="ic">🏆</span> Toppers / Results</a>
+    <a data-p="predictor"><span class="ic">🎯</span> Rank Predictor <span class="pro">PRO</span></a>
+    <div class="sec">COURSES</div>
+    <a data-p="courses"><span class="ic">📚</span> Courses & Exams</a>
+    <a data-p="packages"><span class="ic">📦</span> Course Packages <span class="pro">PRO</span></a>
+    <a data-p="faculty"><span class="ic">👨‍🏫</span> Faculty</a>
+    <div class="sec">LEADS & GROWTH</div>
+    <a data-p="crm"><span class="ic">🧲</span> Lead CRM <span class="pro">PRO</span></a>
+    <a data-p="enquiries"><span class="ic">📝</span> Enquiries</a>
+    <a data-p="demos"><span class="ic">📞</span> Demo Bookings <span class="pro">PRO</span></a>
+    <a data-p="broadcast"><span class="ic">📢</span> Broadcast <span class="pro">PRO</span></a>
+    <div class="sec">CONTENT</div>
+    <a data-p="news"><span class="ic">📰</span> News & Events</a>
+    <a data-p="blog"><span class="ic">✍️</span> Blog <span class="pro">PRO</span></a>
+    <a data-p="gallery"><span class="ic">🖼️</span> Gallery</a>
+    <a data-p="downloads"><span class="ic">📥</span> Downloads</a>
+    <a data-p="faq"><span class="ic">❓</span> FAQ <span class="pro">PRO</span></a>
+    <a data-p="banners"><span class="ic">🎯</span> Hero Banners</a>
+    <div class="sec">INSTITUTE</div>
+    <a data-p="branches"><span class="ic">🏢</span> Multi-Branch <span class="pro">PRO</span></a>
+    <a data-p="staff"><span class="ic">👥</span> Staff & Roles <span class="pro">PRO</span></a>
+    <a data-p="tests"><span class="ic">🧪</span> Tests / QBM</a>
+    <a data-p="settings"><span class="ic">⚙️</span> Settings</a>
+  </nav>
+  <div class="foot">Pro v0.1 · Mentora</div>
+</aside>
+<div class="main">
+  <div class="top"><h1 id="ttl">Dashboard</h1><div class="r"><input class="search" placeholder="Search…"/><div class="av">AD</div></div></div>
+  <div class="wrap">
+    <section class="page show" id="dash">
+      <div class="stats">
+        <div class="stat"><span class="ic">👨‍🎓</span><div class="n">2,500</div><div class="l">Active Students</div></div>
+        <div class="stat"><span class="ic">📝</span><div class="n">47</div><div class="l">New Enquiries <span class="up">▲12%</span></div></div>
+        <div class="stat"><span class="ic">📞</span><div class="n">18</div><div class="l">Demo Bookings</div></div>
+        <div class="stat"><span class="ic">✅</span><div class="n">31%</div><div class="l">Lead Conversion</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Enquiries — last 6 months</h3>
+          <div class="bars">
+            <div class="bar" style="height:45%"><b>62</b><span>Feb</span></div>
+            <div class="bar" style="height:60%"><b>84</b><span>Mar</span></div>
+            <div class="bar" style="height:52%"><b>71</b><span>Apr</span></div>
+            <div class="bar" style="height:78%"><b>108</b><span>May</span></div>
+            <div class="bar" style="height:92%"><b>131</b><span>Jun</span></div>
+            <div class="bar" style="height:100%"><b>142</b><span>Jul</span></div>
+          </div></div>
+        <div class="card"><h3>Quick Actions</h3>
+          <button class="btn" style="width:100%;margin-bottom:9px" data-go="crm">🧲 Open Lead CRM</button>
+          <button class="btn p" style="width:100%;margin-bottom:9px" data-go="broadcast">📢 Send Broadcast</button>
+          <button class="btn gh" style="width:100%;margin-bottom:9px" data-go="packages">📦 Edit Course Packages</button>
+          <button class="btn gh" style="width:100%" data-go="toppers">🏆 Add a Topper</button></div>
+      </div>
+    </section>
+
+    <section class="page" id="analytics">
+      <div class="stats">
+        <div class="stat"><span class="ic">👁️</span><div class="n">38,420</div><div class="l">Website Visits (mo) <span class="up">▲21%</span></div></div>
+        <div class="stat"><span class="ic">📝</span><div class="n">142</div><div class="l">Enquiries (mo)</div></div>
+        <div class="stat"><span class="ic">✅</span><div class="n">31%</div><div class="l">Conversion</div></div>
+        <div class="stat"><span class="ic">⏱️</span><div class="n">2m 41s</div><div class="l">Avg. Time on Site</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Enquiries by Month</h3><div class="bars">
+          <div class="bar" style="height:45%"><b>62</b><span>Feb</span></div><div class="bar" style="height:60%"><b>84</b><span>Mar</span></div><div class="bar" style="height:52%"><b>71</b><span>Apr</span></div><div class="bar" style="height:78%"><b>108</b><span>May</span></div><div class="bar" style="height:92%"><b>131</b><span>Jun</span></div><div class="bar" style="height:100%"><b>142</b><span>Jul</span></div></div></div>
+        <div class="card"><h3>Lead Sources</h3>
+          <p style="font-size:13px;margin:6px 0"><span class="pill b">Website</span> &nbsp;54%</p>
+          <p style="font-size:13px;margin:6px 0"><span class="pill g">WhatsApp</span> &nbsp;27%</p>
+          <p style="font-size:13px;margin:6px 0"><span class="pill y">Walk-in</span> &nbsp;12%</p>
+          <p style="font-size:13px;margin:6px 0"><span class="pill p">Referral</span> &nbsp;7%</p></div>
+      </div>
+    </section>
+
+    <section class="page" id="toppers"><div class="card"><h3>Toppers / Results <button class="btn" onclick="demo()">+ Add Topper</button></h3>
+      <table><thead><tr><th>Name</th><th>Exam</th><th>Rank / Score</th><th>Year</th><th></th></tr></thead><tbody>
+        <tr><td>Ananya Singh</td><td><span class="pill b">NEET</span></td><td>AIR 342</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>Vivaan Mehta</td><td><span class="pill b">JEE Adv</span></td><td>AIR 1,208</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>Ishita Jain</td><td><span class="pill b">NEET</span></td><td>685 / 720</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="predictor"><div class="pred">
+      <h3 style="margin-bottom:4px">🎯 Rank / College Predictor</h3>
+      <p style="font-size:12.5px;color:#b9c6e8">Students enter their rank → see likely colleges. Admin manages the cutoff data.</p>
+      <label style="color:#c9d5f0">Enter NEET Rank</label><input value="12500"/>
+      <button class="btn" onclick="demo()">Predict</button>
+      <div class="predout">
+        <b>Likely colleges @ AIR 12,500 (demo)</b>
+        <table><tbody>
+          <tr><td>Govt. Medical College, Kota</td><td><span class="pill g">Safe</span></td></tr>
+          <tr><td>SMS Medical College, Jaipur</td><td><span class="pill y">Moderate</span></td></tr>
+          <tr><td>AIIMS Jodhpur</td><td><span class="pill r">Reach</span></td></tr>
+        </tbody></table>
+      </div>
+      <button class="btn gh" style="margin-top:12px;background:transparent;color:#fff;border-color:#4a5a8f" onclick="demo()">⚙ Manage Cutoff Data</button>
+    </div></section>
+
+    <section class="page" id="courses"><div class="courses" style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px">
+      <div class="card"><div style="font-size:11px;font-weight:700;color:var(--blue)">MEDICAL</div><h4 style="margin:6px 0">NEET-UG</h4><p style="font-size:12.5px;color:var(--mut)">Class 11, 12 & Droppers</p></div>
+      <div class="card"><div style="font-size:11px;font-weight:700;color:var(--blue)">ENGINEERING</div><h4 style="margin:6px 0">IIT-JEE</h4><p style="font-size:12.5px;color:var(--mut)">Main + Advanced</p></div>
+      <div class="card"><div style="font-size:11px;font-weight:700;color:var(--blue)">FOUNDATION</div><h4 style="margin:6px 0">Class 6–10</h4><p style="font-size:12.5px;color:var(--mut)">Pre-foundation</p></div></div></section>
+
+    <section class="page" id="packages">
+      <div class="tabs"><div class="t on">Class 11</div><div class="t">Class 12</div><div class="t">Dropper</div><div class="t">Foundation 6-10</div></div>
+      <div class="pkgs">
+        <div class="pkg"><span class="bdg rec">RECORDED</span><h4>NEET Achiever 11</h4><div class="ph">Starts 1 Aug 2026</div>
+          <ul><li>1250+ recorded lectures</li><li>25+ tests (CBT + Pen)</li><li>Study material included</li></ul>
+          <div class="pr"><s>₹24,999</s>₹19,999 <span class="off">20% OFF</span></div>
+          <button class="btn sm" style="margin-top:10px;width:100%" onclick="demo()">Edit Package</button></div>
+        <div class="pkg"><span class="bdg live">LIVE</span><h4>JEE Live Intensive 11</h4><div class="ph">Starts 5 Aug 2026</div>
+          <ul><li>Live daily classes</li><li>Doubt sessions + tests</li><li>Recorded backup</li></ul>
+          <div class="pr"><s>₹39,999</s>₹31,999 <span class="off">20% OFF</span></div>
+          <button class="btn sm" style="margin-top:10px;width:100%" onclick="demo()">Edit Package</button></div>
+        <div class="pkg"><span class="bdg test">TEST SERIES</span><h4>NEET Test Series</h4><div class="ph">Rolling</div>
+          <ul><li>40+ full + part tests</li><li>All-India rank</li><li>Detailed analysis</li></ul>
+          <div class="pr"><s>₹5,999</s>₹4,499 <span class="off">25% OFF</span></div>
+          <button class="btn sm" style="margin-top:10px;width:100%" onclick="demo()">Edit Package</button></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn" onclick="demo()">+ Add Package</button></div>
+    </section>
+
+    <section class="page" id="faculty"><div class="card" style="margin-bottom:16px"><h3>Faculty <button class="btn" onclick="demo()">+ Add Faculty</button></h3></div>
+      <div class="fac">
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Dr. R. Sharma</b><small>Physics · 12 yrs</small></div>
+        <div class="fc"><div class="ph">👩‍🏫</div><b>Ms. A. Kapoor</b><small>Chemistry · 9 yrs</small></div>
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Mr. S. Yadav</b><small>Biology · 15 yrs</small></div>
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Mr. M. Pareek</b><small>Org. Chemistry · 10 yrs</small></div></div></section>
+
+    <section class="page" id="crm">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><b style="font-size:14px">Lead Pipeline</b><button class="btn sm" onclick="demo()">+ Add Lead</button></div>
+      <div class="kb">
+        <div class="col"><h4>New <span>3</span></h4>
+          <div class="lead"><b>Aarav Sharma</b><small>NEET · +91 9•••210</small></div>
+          <div class="lead"><b>Sneha Rao</b><small>NEET · +91 9•••037</small></div>
+          <div class="lead"><b>Manish Jat</b><small>JEE · +91 7•••662</small></div></div>
+        <div class="col"><h4>Contacted <span>2</span></h4>
+          <div class="lead"><b>Priya Verma</b><small>JEE · follow-up tmrw</small></div>
+          <div class="lead"><b>Karan Soni</b><small>Foundation · called</small></div></div>
+        <div class="col"><h4>Demo Booked <span>1</span></h4>
+          <div class="lead"><b>Neha Meena</b><small>NEET · demo 3 Aug</small></div></div>
+        <div class="col"><h4>Admitted <span>2</span></h4>
+          <div class="lead"><b>Rohan Gupta</b><small>Foundation ✅</small></div>
+          <div class="lead"><b>Ayush Kumawat</b><small>JEE ✅</small></div></div>
+      </div>
+    </section>
+
+    <section class="page" id="enquiries"><div class="card"><h3>Enquiries <button class="btn gh" onclick="demo()">⬇ Export CSV</button></h3>
+      <table><thead><tr><th>Name</th><th>Course</th><th>Phone</th><th>Source</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Aarav Sharma</td><td>NEET</td><td>+91 9•••••210</td><td>Website</td><td><span class="pill y">New</span></td></tr>
+        <tr><td>Priya Verma</td><td>JEE</td><td>+91 8•••••554</td><td>Website</td><td><span class="pill b">Contacted</span></td></tr>
+        <tr><td>Rohan Gupta</td><td>Foundation</td><td>+91 7•••••881</td><td>WhatsApp</td><td><span class="pill g">Admitted</span></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="demos"><div class="card"><h3>Demo Bookings <button class="btn" onclick="demo()">+ Slot</button></h3>
+      <table><thead><tr><th>Student</th><th>Course</th><th>Date</th><th>Mode</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Neha Meena</td><td>NEET</td><td>3 Aug, 5 PM</td><td><span class="pill b">Online</span></td><td><span class="pill y">Upcoming</span></td></tr>
+        <tr><td>Sahil Khan</td><td>JEE</td><td>4 Aug, 11 AM</td><td><span class="pill p">Centre</span></td><td><span class="pill y">Upcoming</span></td></tr>
+        <tr><td>Divya Rao</td><td>Foundation</td><td>1 Aug, 4 PM</td><td><span class="pill b">Online</span></td><td><span class="pill g">Done</span></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="broadcast"><div class="card"><h3>Broadcast — WhatsApp / SMS</h3>
+      <div class="form"><div><label>Send to</label><select><option>All New Leads</option><option>NEET Enquiries</option><option>Demo No-shows</option></select></div>
+      <div><label>Channel</label><select><option>WhatsApp</option><option>SMS</option></select></div>
+      <div class="full"><label>Message</label><textarea rows="3">Admissions for 2026-27 are open at DS Science Academy, Gangapur City. Reply YES for a callback.</textarea></div>
+      <div class="full"><button class="btn p" onclick="demo()">📢 Send Broadcast</button></div></div></div></section>
+
+    <section class="page" id="news"><div class="card"><h3>News & Events <button class="btn" onclick="demo()">+ Post Notice</button></h3>
+      <table><thead><tr><th>Title</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td>Admissions Open 2026-27</td><td><span class="pill b">Notice</span></td><td><span class="pill g">Published</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>Scholarship Test — Aug 10</td><td><span class="pill y">Event</span></td><td><span class="pill g">Published</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="blog"><div class="card"><h3>Blog / Articles <button class="btn" onclick="demo()">+ New Article</button></h3>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td>How to crack NEET in 1 year</td><td><span class="pill b">NEET</span></td><td><span class="pill g">Published</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>JEE Main 2027 — pattern changes</td><td><span class="pill b">JEE</span></td><td><span class="pill y">Draft</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="gallery"><div class="card"><h3>Gallery <button class="btn" onclick="demo()">⬆ Upload</button></h3>
+      <div class="gal"><div class="gi">🖼️</div><div class="gi">🏫</div><div class="gi">🎓</div><div class="gi">🏆</div><div class="gi">📸</div><div class="gi">🎥</div><div class="gi">🖼️</div><div class="gi">🏫</div></div></div></section>
+
+    <section class="page" id="downloads"><div class="card"><h3>Downloads Center <button class="btn" onclick="demo()">⬆ Upload File</button></h3>
+      <table><thead><tr><th>File</th><th>Category</th><th>Downloads</th><th></th></tr></thead><tbody>
+        <tr><td>📘 Prospectus / Brochure 2026-27</td><td><span class="pill b">Brochure</span></td><td>1,204</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📗 JEE Syllabus (Class 11–12)</td><td><span class="pill b">Syllabus</span></td><td>842</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📄 NEET 2025 Paper + Answer Key</td><td><span class="pill y">PYQ</span></td><td>2,845</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="faq"><div class="card"><h3>FAQ <button class="btn" onclick="demo()">+ Add Q&A</button></h3>
+      <div class="acc">
+        <div class="q" onclick="demo()">What courses does DS Science Academy offer? <span>+</span></div>
+        <div class="q" onclick="demo()">When do the new batches start? <span>+</span></div>
+        <div class="q" onclick="demo()">Is there a scholarship test? <span>+</span></div>
+        <div class="q" onclick="demo()">Do you provide hostel facility? <span>+</span></div>
+      </div></div></section>
+
+    <section class="page" id="banners"><div class="card"><h3>Home Hero Banners <button class="btn" onclick="demo()">+ Add Banner</button></h3>
+      <table><thead><tr><th>Order</th><th>Title</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td>1</td><td>NEET 2025 — Record Results</td><td><span class="pill g">Live</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>2</td><td>Admissions Open 2026-27</td><td><span class="pill g">Live</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="branches"><div class="card"><h3>Branches / Centres <button class="btn" onclick="demo()">+ Add Branch</button></h3>
+      <table><thead><tr><th>Centre</th><th>City</th><th>Students</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Main Campus</td><td>Gangapur City</td><td>1,800</td><td><span class="pill g">Active</span></td></tr>
+        <tr><td>City Centre</td><td>Gangapur City</td><td>700</td><td><span class="pill g">Active</span></td></tr>
+        <tr><td>New Branch</td><td>Sawai Madhopur</td><td>—</td><td><span class="pill y">Setup</span></td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="staff"><div class="card"><h3>Staff & Roles <button class="btn" onclick="demo()">+ Add Staff</button></h3>
+      <table><thead><tr><th>Name</th><th>Role</th><th>Access</th></tr></thead><tbody>
+        <tr><td>Admin</td><td><span class="pill p">Super Admin</span></td><td>Full</td></tr>
+        <tr><td>Front Office</td><td><span class="pill b">Counsellor</span></td><td>Leads + Enquiries</td></tr>
+        <tr><td>Content Team</td><td><span class="pill b">Editor</span></td><td>News, Blog, Gallery</td></tr>
+      </tbody></table></div></section>
+
+    <section class="page" id="tests"><div class="card"><div class="empty"><div class="big">🧪</div><span class="soon">COMING IN PHASE 2</span>
+      <h2 style="margin:14px 0 8px;font-size:17px">Question Bank & Online Test Portal</h2>
+      <p style="max-width:520px;margin:0 auto;color:var(--mut);font-size:13.5px">Create papers from your own question bank, run NTA-style online tests (up to 500 students at a time), publish results & leaderboards — Hindi + English supported.</p></div></div></section>
+
+    <section class="page" id="settings"><div class="card"><h3>Institute Settings</h3><div class="form">
+      <div><label>Institute Name</label><input value="DS Science Academy"/></div>
+      <div><label>Contact Phone</label><input value="+91 •••••••••"/></div>
+      <div class="full"><label>Address</label><input value="Gangapur City, Rajasthan"/></div>
+      <div><label>Primary Color</label><input value="#0f2149"/></div>
+      <div><label>Accent Color</label><input value="#7c3aed"/></div>
+      <div class="full"><label>About / Tagline</label><textarea rows="2">Trusted NEET, JEE & Foundation coaching — Gangapur City.</textarea></div>
+      <div class="full"><button class="btn g" onclick="demo()">💾 Save Settings</button></div></div></div></section>
+  </div>
+</div>
+<div id="toast">Demo mode — buttons are not connected yet 🙂</div>
+<script>
+  var titles={dash:"Dashboard",analytics:"Analytics",toppers:"Toppers / Results",predictor:"Rank Predictor",courses:"Courses & Exams",packages:"Course Packages",faculty:"Faculty",crm:"Lead CRM",enquiries:"Enquiries",demos:"Demo Bookings",broadcast:"Broadcast",news:"News & Events",blog:"Blog",gallery:"Gallery",downloads:"Downloads Center",faq:"FAQ",banners:"Hero Banners",branches:"Multi-Branch",staff:"Staff & Roles",tests:"Tests / QBM",settings:"Settings"};
+  function go(p){document.querySelectorAll('.page').forEach(function(s){s.classList.remove('show')});document.getElementById(p).classList.add('show');document.querySelectorAll('#nav a').forEach(function(a){a.classList.toggle('active',a.dataset.p===p)});document.getElementById('ttl').textContent=titles[p]||'';window.scrollTo(0,0);}
+  document.querySelectorAll('#nav a').forEach(function(a){a.onclick=function(){go(a.dataset.p)}});
+  document.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(){go(b.dataset.go)}});
+  document.querySelectorAll('.tabs .t').forEach(function(t){t.onclick=function(){document.querySelectorAll('.tabs .t').forEach(function(x){x.classList.remove('on')});t.classList.add('on');}});
+  var t;function demo(){var el=document.getElementById('toast');el.classList.add('show');clearTimeout(t);t=setTimeout(function(){el.classList.remove('show')},1800);}
+</script>
+</body>
+</html>

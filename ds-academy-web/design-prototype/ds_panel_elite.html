@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DS Science Academy — Elite Website Prototype</title>
+<style>
+  :root{--navy:#0f2149;--line:#e6eaf2;--bg:#f4f6fb;--ink:#1f2a44;--mut:#6b7794;--blue:#2563eb;--gold:#e0a11a;--green:#1e9e5a;--red:#e0483d;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+  body{background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .side{width:250px;background:var(--navy);color:#cdd6ea;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:20px 18px;border-bottom:1px solid #22335f}
+  .brand .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#2f4d9e,#1a2c66);display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;vertical-align:middle}
+  .brand b{color:#fff;font-size:15px;margin-left:9px;vertical-align:middle}
+  .brand small{display:block;color:#8fa0c8;font-size:10.5px;margin-top:6px;letter-spacing:.5px}
+  .plan{display:inline-block;margin-top:9px;background:#1c2c5c;color:#9fd0ff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:1px}
+  .nav{padding:10px;flex:1;overflow:auto}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;color:#c2cce4;text-decoration:none;font-size:13.5px;cursor:pointer;margin-bottom:2px}
+  .nav a .ic{width:20px;text-align:center;font-size:15px}
+  .nav a:hover{background:#1c2c5c;color:#fff}
+  .nav a.active{background:var(--blue);color:#fff;font-weight:600}
+  .nav .sec{color:#6f7fa8;font-size:10px;letter-spacing:1.5px;padding:14px 12px 6px}
+  .side .foot{padding:12px 16px;border-top:1px solid #22335f;font-size:11px;color:#8fa0c8}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .top{background:#fff;border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+  .top h1{font-size:19px;font-weight:700}
+  .top .r{display:flex;align-items:center;gap:14px}
+  .search{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;width:230px;color:var(--mut)}
+  .av{width:34px;height:34px;border-radius:50%;background:var(--gold);color:#3a2a00;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .wrap{padding:24px 26px}
+  .page{display:none}.page.show{display:block;animation:f .2s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .stat .n{font-size:26px;font-weight:800;color:var(--navy)}.stat .l{font-size:12.5px;color:var(--mut);margin-top:3px}.stat .ic{float:right;font-size:20px}
+  .grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px}
+  .card h3{font-size:14.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .btn.gh{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.g{background:var(--green)}.btn.sm{padding:5px 10px;font-size:11.5px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:9px 8px;border-bottom:1px solid var(--line)}
+  td{padding:11px 8px;border-bottom:1px solid #f0f2f7}tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .pill.g{background:#e6f6ed;color:var(--green)}.pill.b{background:#e8eefc;color:var(--blue)}.pill.y{background:#fdf3dd;color:#9a6b00}.pill.r{background:#fdeceb;color:var(--red)}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;margin:0 6px 6px 0}
+  .courses{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .course{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px}
+  .course .tag{font-size:11px;font-weight:700;color:var(--blue);letter-spacing:1px}.course h4{font-size:16px;margin:8px 0 4px}.course p{font-size:12.5px;color:var(--mut)}
+  .fac{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .fc{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px;text-align:center}
+  .fc .ph{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#dfe6f5,#c3d0ee);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .fc b{font-size:13.5px}.fc small{color:var(--mut);font-size:11.5px;display:block;margin-top:2px}
+  .gal{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .gi{aspect-ratio:4/3;background:linear-gradient(135deg,#e7ecf7,#d3ddf0);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#8ea3cf}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:640px}.form .full{grid-column:1/3}
+  label{font-size:12px;color:var(--mut);display:block;margin-bottom:5px;font-weight:600}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;background:#fff;color:var(--ink)}
+  .empty{text-align:center;padding:50px 20px;color:var(--mut)}.empty .big{font-size:40px;margin-bottom:10px}
+  .soon{display:inline-block;background:var(--gold);color:#3a2a00;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.5px}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;transition:.3s;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.2)}#toast.show{transform:translateX(-50%) translateY(0)}
+  .demo{position:fixed;top:9px;right:14px;background:#e8eefc;color:var(--blue);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;z-index:30;border:1px solid #c9d6f6}
+  @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.grid2,.courses,.fac,.gal,.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="demo">● ELITE · Prototype</div>
+<aside class="side">
+  <div class="brand"><span class="logo">DS</span><b>DS Science Academy</b>
+    <small>ADMIN PANEL · powered by Mentora</small><span class="plan">ELITE PLAN</span></div>
+  <nav class="nav" id="nav">
+    <div class="sec">MAIN</div>
+    <a data-p="dash" class="active"><span class="ic">📊</span> Dashboard</a>
+    <a data-p="toppers"><span class="ic">🏆</span> Toppers / Results</a>
+    <a data-p="courses"><span class="ic">📚</span> Courses & Exams</a>
+    <a data-p="faculty"><span class="ic">👨‍🏫</span> Faculty</a>
+    <div class="sec">CONTENT</div>
+    <a data-p="news"><span class="ic">📰</span> News & Events</a>
+    <a data-p="gallery"><span class="ic">🖼️</span> Gallery</a>
+    <a data-p="downloads"><span class="ic">📥</span> Downloads</a>
+    <a data-p="banners"><span class="ic">🎯</span> Hero Banners</a>
+    <div class="sec">LEADS</div>
+    <a data-p="enquiries"><span class="ic">📝</span> Admissions / Enquiries</a>
+    <div class="sec">PLATFORM</div>
+    <a data-p="tests"><span class="ic">🧪</span> Tests / QBM</a>
+    <a data-p="settings"><span class="ic">⚙️</span> Settings</a>
+  </nav>
+  <div class="foot">Elite v0.1 · Mentora</div>
+</aside>
+<div class="main">
+  <div class="top"><h1 id="ttl">Dashboard</h1><div class="r"><input class="search" placeholder="Search…"/><div class="av">AD</div></div></div>
+  <div class="wrap">
+    <section class="page show" id="dash">
+      <div class="stats">
+        <div class="stat"><span class="ic">👨‍🎓</span><div class="n">2,500</div><div class="l">Active Students</div></div>
+        <div class="stat"><span class="ic">🏆</span><div class="n">184</div><div class="l">Toppers Listed</div></div>
+        <div class="stat"><span class="ic">📝</span><div class="n">47</div><div class="l">New Enquiries</div></div>
+        <div class="stat"><span class="ic">📚</span><div class="n">6</div><div class="l">Active Courses</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Recent Enquiries <button class="btn sm gh" data-go="enquiries">View all</button></h3>
+          <table><thead><tr><th>Name</th><th>Course</th><th>Phone</th><th>Status</th></tr></thead><tbody>
+            <tr><td>Aarav Sharma</td><td>NEET</td><td>+91 9•••••210</td><td><span class="pill y">New</span></td></tr>
+            <tr><td>Priya Verma</td><td>JEE</td><td>+91 8•••••554</td><td><span class="pill b">Contacted</span></td></tr>
+            <tr><td>Rohan Gupta</td><td>Foundation (9)</td><td>+91 7•••••881</td><td><span class="pill g">Admitted</span></td></tr>
+            <tr><td>Sneha Rao</td><td>NEET</td><td>+91 9•••••037</td><td><span class="pill y">New</span></td></tr>
+          </tbody></table></div>
+        <div class="card"><h3>Quick Actions</h3>
+          <button class="btn" style="width:100%;margin-bottom:10px" data-go="toppers">🏆 Add a Topper</button>
+          <button class="btn gh" style="width:100%;margin-bottom:10px" data-go="news">📰 Post News / Notice</button>
+          <button class="btn gh" style="width:100%;margin-bottom:10px" data-go="downloads">📥 Upload a Download</button>
+          <button class="btn gh" style="width:100%" data-go="banners">🎯 Update Home Banner</button></div>
+      </div>
+    </section>
+    <section class="page" id="toppers"><div class="card"><h3>Toppers / Results <button class="btn" onclick="demo()">+ Add Topper</button></h3>
+      <table><thead><tr><th>Photo</th><th>Name</th><th>Exam</th><th>Rank / Score</th><th>Year</th><th></th></tr></thead><tbody>
+        <tr><td>🧑‍🎓</td><td>Ananya Singh</td><td><span class="pill b">NEET</span></td><td>AIR 342</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>🧑‍🎓</td><td>Vivaan Mehta</td><td><span class="pill b">JEE Adv</span></td><td>AIR 1,208</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>🧑‍🎓</td><td>Ishita Jain</td><td><span class="pill b">NEET</span></td><td>685 / 720</td><td>2025</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>🧑‍🎓</td><td>Kabir Nair</td><td><span class="pill b">JEE Main</span></td><td>99.4 %ile</td><td>2024</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+    <section class="page" id="courses"><div class="courses">
+      <div class="course"><div class="tag">MEDICAL</div><h4>NEET-UG</h4><p>Class 11, 12 & Droppers</p><br><button class="btn sm gh" onclick="demo()">Manage</button></div>
+      <div class="course"><div class="tag">ENGINEERING</div><h4>IIT-JEE (Main + Adv)</h4><p>Class 11, 12 & Droppers</p><br><button class="btn sm gh" onclick="demo()">Manage</button></div>
+      <div class="course"><div class="tag">FOUNDATION</div><h4>Class 6 – 10</h4><p>Pre-foundation groundwork</p><br><button class="btn sm gh" onclick="demo()">Manage</button></div></div>
+      <div class="card" style="margin-top:16px"><h3>Exam Categories</h3>
+        <span class="chip">🎯 JEE Main</span><span class="chip">🎯 JEE Advanced</span><span class="chip">🩺 NEET</span><span class="chip">📘 Foundation 6-10</span><span class="chip">📗 Board (CBSE/RBSE)</span>
+        <div style="margin-top:12px"><button class="btn sm" onclick="demo()">+ Add Course / Exam</button></div></div></section>
+    <section class="page" id="faculty"><div class="card" style="margin-bottom:16px"><h3>Faculty <button class="btn" onclick="demo()">+ Add Faculty</button></h3></div>
+      <div class="fac">
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Dr. R. Sharma</b><small>Physics · 12 yrs</small></div>
+        <div class="fc"><div class="ph">👩‍🏫</div><b>Ms. A. Kapoor</b><small>Chemistry · 9 yrs</small></div>
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Mr. S. Yadav</b><small>Biology · 15 yrs</small></div>
+        <div class="fc"><div class="ph">👨‍🏫</div><b>Mr. M. Pareek</b><small>Org. Chemistry · 10 yrs</small></div></div></section>
+    <section class="page" id="news"><div class="card"><h3>News & Events <button class="btn" onclick="demo()">+ Post Notice</button></h3>
+      <table><thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td>Admissions Open 2026-27</td><td><span class="pill b">Notice</span></td><td>25 Jul 2026</td><td><span class="pill g">Published</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>Scholarship Test — Aug 10</td><td><span class="pill y">Event</span></td><td>20 Jul 2026</td><td><span class="pill g">Published</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>NEET 2025 Result Highlights</td><td><span class="pill b">Notice</span></td><td>15 Jun 2026</td><td><span class="pill y">Draft</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+    <section class="page" id="gallery"><div class="card"><h3>Gallery <button class="btn" onclick="demo()">⬆ Upload Images</button></h3>
+      <div class="gal"><div class="gi">🖼️</div><div class="gi">🖼️</div><div class="gi">🖼️</div><div class="gi">🖼️</div><div class="gi">🏫</div><div class="gi">🎓</div><div class="gi">🏆</div><div class="gi">📸</div></div></div></section>
+    <section class="page" id="downloads"><div class="card"><h3>Downloads Center <button class="btn" onclick="demo()">⬆ Upload File</button></h3>
+      <table><thead><tr><th>File</th><th>Category</th><th>Downloads</th><th></th></tr></thead><tbody>
+        <tr><td>📘 Prospectus / Brochure 2026-27</td><td><span class="pill b">Brochure</span></td><td>1,204</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📗 JEE Syllabus (Class 11–12)</td><td><span class="pill b">Syllabus</span></td><td>842</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📗 NEET Syllabus</td><td><span class="pill b">Syllabus</span></td><td>931</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📄 JEE 2025 Paper + Solutions</td><td><span class="pill y">PYQ</span></td><td>2,110</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>📄 NEET 2025 Paper + Answer Key</td><td><span class="pill y">PYQ</span></td><td>2,845</td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+    <section class="page" id="banners"><div class="card"><h3>Home Hero Banners <button class="btn" onclick="demo()">+ Add Banner</button></h3>
+      <table><thead><tr><th>Order</th><th>Title</th><th>Status</th><th></th></tr></thead><tbody>
+        <tr><td>1</td><td>NEET 2025 — Record Results</td><td><span class="pill g">Live</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>2</td><td>Admissions Open 2026-27</td><td><span class="pill g">Live</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+        <tr><td>3</td><td>Scholarship Test Banner</td><td><span class="pill y">Hidden</span></td><td><button class="btn sm gh" onclick="demo()">Edit</button></td></tr>
+      </tbody></table></div></section>
+    <section class="page" id="enquiries"><div class="card"><h3>Admissions / Enquiries <button class="btn gh" onclick="demo()">⬇ Export CSV</button></h3>
+      <table><thead><tr><th>Name</th><th>Course</th><th>Phone</th><th>Source</th><th>Date</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Aarav Sharma</td><td>NEET</td><td>+91 9•••••210</td><td>Website</td><td>26 Jul</td><td><span class="pill y">New</span></td></tr>
+        <tr><td>Priya Verma</td><td>JEE</td><td>+91 8•••••554</td><td>Website</td><td>26 Jul</td><td><span class="pill b">Contacted</span></td></tr>
+        <tr><td>Rohan Gupta</td><td>Foundation</td><td>+91 7•••••881</td><td>WhatsApp</td><td>25 Jul</td><td><span class="pill g">Admitted</span></td></tr>
+        <tr><td>Sneha Rao</td><td>NEET</td><td>+91 9•••••037</td><td>Website</td><td>25 Jul</td><td><span class="pill y">New</span></td></tr>
+      </tbody></table></div></section>
+    <section class="page" id="tests"><div class="card"><div class="empty"><div class="big">🧪</div><span class="soon">COMING IN PHASE 2</span>
+      <h2 style="margin:14px 0 8px;font-size:17px">Question Bank & Online Test Portal</h2>
+      <p style="max-width:520px;margin:0 auto;color:var(--mut);font-size:13.5px">Create papers from your own question bank, run NTA-style online tests (up to 500 students at a time), publish results & leaderboards — all from this same panel. Hindi + English support included.</p></div></div></section>
+    <section class="page" id="settings"><div class="card"><h3>Institute Settings</h3><div class="form">
+      <div><label>Institute Name</label><input value="DS Science Academy"/></div>
+      <div><label>Contact Phone</label><input value="+91 •••••••••"/></div>
+      <div class="full"><label>Address</label><input value="Gangapur City, Rajasthan"/></div>
+      <div><label>Primary Color</label><input value="#0f2149"/></div>
+      <div><label>Accent Color</label><input value="#e0a11a"/></div>
+      <div class="full"><label>About / Tagline</label><textarea rows="2">Trusted NEET, JEE & Foundation coaching — Gangapur City.</textarea></div>
+      <div class="full"><button class="btn g" onclick="demo()">💾 Save Settings</button></div></div></div></section>
+  </div>
+</div>
+<div id="toast">Demo mode — buttons are not connected yet 🙂</div>
+<script>
+  var titles={dash:"Dashboard",toppers:"Toppers / Results",courses:"Courses & Exams",faculty:"Faculty",news:"News & Events",gallery:"Gallery",downloads:"Downloads Center",banners:"Hero Banners",enquiries:"Admissions / Enquiries",tests:"Tests / QBM",settings:"Settings"};
+  function go(p){document.querySelectorAll('.page').forEach(function(s){s.classList.remove('show')});document.getElementById(p).classList.add('show');document.querySelectorAll('#nav a').forEach(function(a){a.classList.toggle('active',a.dataset.p===p)});document.getElementById('ttl').textContent=titles[p]||'';window.scrollTo(0,0);}
+  document.querySelectorAll('#nav a').forEach(function(a){a.onclick=function(){go(a.dataset.p)}});
+  document.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(){go(b.dataset.go)}});
+  var t;function demo(){var el=document.getElementById('toast');el.classList.add('show');clearTimeout(t);t=setTimeout(function(){el.classList.remove('show')},1800);}
+</script>
+</body>
+</html>

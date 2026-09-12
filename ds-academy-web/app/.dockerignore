@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+backups
+public/uploads
+*.log
+README.md
+SETUP.md
+STAFF_GUIDE.md

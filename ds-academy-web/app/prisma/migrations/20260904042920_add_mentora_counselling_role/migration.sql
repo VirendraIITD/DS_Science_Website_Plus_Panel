@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "StaffRoleName" ADD VALUE 'MENTORA_COUNSELLING';
