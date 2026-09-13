@@ -14,7 +14,7 @@ on:
 jobs:
 
   # ============================================================
-  # BUILD + DATABASE MIGRATION + DEPLOY
+  # BUILD + DATABASE MIGRATION + SEED + DEPLOY
   # ============================================================
   build_and_deploy_job:
 
@@ -22,7 +22,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    name: Build, Migrate and Deploy
+    name: Build, Migrate, Seed and Deploy
 
     steps:
 
@@ -86,7 +86,7 @@ jobs:
 
 
       # --------------------------------------------------------
-      # 4. VERIFY DATABASE SECRET EXISTS
+      # 4. VERIFY DATABASE SECRET
       # --------------------------------------------------------
       - name: Verify DATABASE_URL secret
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -104,9 +104,7 @@ jobs:
           fi
 
           echo "DATABASE_URL secret is configured."
-
-          # Do NOT print the actual DATABASE_URL.
-          # It contains the database password.
+          echo "Database password will not be displayed."
 
           echo "=============================================="
 
@@ -131,7 +129,7 @@ jobs:
 
 
       # --------------------------------------------------------
-      # 6. CHECK DATABASE CONNECTION + USER + PERMISSIONS
+      # 6. DATABASE DIAGNOSTIC
       # --------------------------------------------------------
       - name: Diagnose production database
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -143,7 +141,7 @@ jobs:
           echo "PRODUCTION DATABASE DIAGNOSTIC"
           echo "=============================================="
 
-          echo "Testing database connection..."
+          echo "Testing database connection and permissions..."
 
           npx prisma db execute --stdin <<'SQL'
 
@@ -155,6 +153,12 @@ jobs:
             inet_server_port() AS server_port;
 
           SELECT
+            has_database_privilege(
+              current_user,
+              current_database(),
+              'CONNECT'
+            ) AS has_database_connect,
+
             has_schema_privilege(
               current_user,
               'public',
@@ -235,7 +239,86 @@ jobs:
 
 
       # --------------------------------------------------------
-      # 9. BUILD + DEPLOY AZURE STATIC WEB APP
+      # 9. SEED PRODUCTION DATABASE
+      # --------------------------------------------------------
+      - name: Seed production database
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "=============================================="
+          echo "STARTING PRODUCTION DATABASE SEED"
+          echo "=============================================="
+
+          echo "Running prisma/seed.ts..."
+
+          npx prisma db seed
+
+          echo "=============================================="
+          echo "PRODUCTION DATABASE SEED COMPLETED"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 10. VERIFY SEEDED DATA
+      # --------------------------------------------------------
+      - name: Verify production data
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "=============================================="
+          echo "VERIFYING PRODUCTION DATA"
+          echo "=============================================="
+
+          npx prisma db execute --stdin <<'SQL'
+
+          SELECT 'banner' AS table_name, COUNT(*) AS row_count
+          FROM "Banner"
+
+          UNION ALL
+
+          SELECT 'statItem', COUNT(*)
+          FROM "StatItem"
+
+          UNION ALL
+
+          SELECT 'course', COUNT(*)
+          FROM "Course"
+
+          UNION ALL
+
+          SELECT 'topper', COUNT(*)
+          FROM "Topper"
+
+          UNION ALL
+
+          SELECT 'whyPoint', COUNT(*)
+          FROM "WhyPoint"
+
+          UNION ALL
+
+          SELECT 'testimonial', COUNT(*)
+          FROM "Testimonial"
+
+          UNION ALL
+
+          SELECT 'news', COUNT(*)
+          FROM "News"
+
+          ORDER BY table_name;
+
+          SQL
+
+          echo "=============================================="
+          echo "PRODUCTION DATA VERIFICATION COMPLETE"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 11. BUILD + DEPLOY AZURE STATIC WEB APP
       # --------------------------------------------------------
       - name: Build And Deploy
         id: builddeploy
@@ -249,6 +332,10 @@ jobs:
           api_location: ""
           output_location: ".next"
 
+
+      # --------------------------------------------------------
+      # 12. DEPLOYMENT COMPLETE
+      # --------------------------------------------------------
       - name: Deployment completed
         run: |
           echo "=============================================="
