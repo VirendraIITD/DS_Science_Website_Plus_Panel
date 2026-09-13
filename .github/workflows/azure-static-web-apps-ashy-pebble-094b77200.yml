@@ -10,54 +10,191 @@ on:
     branches:
       - main
 
+
 jobs:
+
+  # ============================================================
+  # BUILD + DATABASE MIGRATION + DEPLOY
+  # ============================================================
   build_and_deploy_job:
+
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+
+    name: Build, Migrate and Deploy
 
     steps:
-      - name: Checkout
+
+      # --------------------------------------------------------
+      # 1. CHECKOUT
+      # --------------------------------------------------------
+      - name: Checkout source code
         uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
 
+      - name: Log checkout information
+        run: |
+          echo "=============================================="
+          echo "CHECKOUT COMPLETE"
+          echo "=============================================="
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Runner OS: $RUNNER_OS"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 2. NODE VERSION
+      # --------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ds-academy-web/app/package-lock.json
+
+      - name: Log Node and npm versions
+        run: |
+          echo "=============================================="
+          echo "NODE ENVIRONMENT"
+          echo "=============================================="
+          node --version
+          npm --version
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 3. INSTALL DEPENDENCIES
+      # --------------------------------------------------------
       - name: Install dependencies
         working-directory: ds-academy-web/app
-        run: npm ci
+        run: |
+          echo "=============================================="
+          echo "INSTALLING NPM DEPENDENCIES"
+          echo "=============================================="
 
+          npm ci
+
+          echo "=============================================="
+          echo "NPM INSTALL COMPLETE"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 4. VERIFY DATABASE SECRET EXISTS
+      # --------------------------------------------------------
+      - name: Verify DATABASE_URL secret
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "=============================================="
+          echo "VERIFYING DATABASE CONFIGURATION"
+          echo "=============================================="
+
+          if [ -z "$DATABASE_URL" ]; then
+            echo "ERROR: DATABASE_URL GitHub Secret is EMPTY"
+            exit 1
+          fi
+
+          echo "DATABASE_URL secret is configured."
+
+          # Do NOT print the actual DATABASE_URL.
+          # It contains the database password.
+
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 5. GENERATE PRISMA CLIENT
+      # --------------------------------------------------------
       - name: Generate Prisma Client
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma generate
+        run: |
+          echo "=============================================="
+          echo "GENERATING PRISMA CLIENT"
+          echo "=============================================="
 
-      - name: Verify database configuration
+          npx prisma generate
+
+          echo "=============================================="
+          echo "PRISMA CLIENT GENERATION COMPLETE"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 6. CHECK DATABASE CONNECTION + USER + PERMISSIONS
+      # --------------------------------------------------------
+      - name: Diagnose production database
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "ERROR: DATABASE_URL is not configured"
-            exit 1
-          fi
+          echo "=============================================="
+          echo "PRODUCTION DATABASE DIAGNOSTIC"
+          echo "=============================================="
 
-          echo "DATABASE_URL is configured"
+          echo "Testing database connection..."
 
-      - name: Verify production DB permissions
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: ds-academy-web/app
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
           npx prisma db execute --stdin <<'SQL'
+
           SELECT
-            current_user,
-            current_database(),
-            has_schema_privilege(current_user, 'public', 'USAGE') AS has_usage,
-            has_schema_privilege(current_user, 'public', 'CREATE') AS has_create;
+            current_user AS database_user,
+            current_database() AS database_name,
+            current_schema() AS current_schema,
+            inet_server_addr() AS server_address,
+            inet_server_port() AS server_port;
+
+          SELECT
+            has_schema_privilege(
+              current_user,
+              'public',
+              'USAGE'
+            ) AS has_public_usage,
+
+            has_schema_privilege(
+              current_user,
+              'public',
+              'CREATE'
+            ) AS has_public_create;
+
+          SELECT
+            nspname AS schema_name,
+            nspowner::regrole AS schema_owner,
+            nspacl AS schema_permissions
+          FROM pg_namespace
+          WHERE nspname = 'public';
+
+          SQL
+
+          echo "=============================================="
+          echo "DATABASE DIAGNOSTIC COMPLETE"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 7. TEST ACTUAL CREATE PERMISSION
+      # --------------------------------------------------------
+      - name: Test database CREATE permission
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "=============================================="
+          echo "TESTING PUBLIC SCHEMA CREATE PERMISSION"
+          echo "=============================================="
+
+          npx prisma db execute --stdin <<'SQL'
 
           BEGIN;
 
@@ -65,16 +202,41 @@ jobs:
             id integer
           );
 
+          SELECT
+            'CREATE TABLE permission works' AS result;
+
           ROLLBACK;
+
           SQL
 
+          echo "=============================================="
+          echo "CREATE PERMISSION TEST PASSED"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 8. DEPLOY PRISMA MIGRATIONS
+      # --------------------------------------------------------
       - name: Deploy Prisma migrations
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: |
+          echo "=============================================="
+          echo "STARTING PRISMA MIGRATION"
+          echo "=============================================="
 
+          npx prisma migrate deploy
+
+          echo "=============================================="
+          echo "PRISMA MIGRATION COMPLETED"
+          echo "=============================================="
+
+
+      # --------------------------------------------------------
+      # 9. BUILD + DEPLOY AZURE STATIC WEB APP
+      # --------------------------------------------------------
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -82,19 +244,42 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ASHY_PEBBLE_094B77200 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
+
           app_location: "ds-academy-web/app"
           api_location: ""
           output_location: ".next"
 
+      - name: Deployment completed
+        run: |
+          echo "=============================================="
+          echo "AZURE STATIC WEB APP DEPLOYMENT COMPLETED"
+          echo "=============================================="
+          echo "Application deployment step finished."
+          echo "=============================================="
+
+
+  # ============================================================
+  # CLOSE PULL REQUEST DEPLOYMENT
+  # ============================================================
   close_pull_request_job:
+
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
+
     runs-on: ubuntu-latest
+
     name: Close Pull Request
 
     steps:
+
       - name: Close Pull Request
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ASHY_PEBBLE_094B77200 }}
           action: close
+
+      - name: Log pull request cleanup
+        run: |
+          echo "=============================================="
+          echo "PULL REQUEST ENVIRONMENT CLOSED"
+          echo "=============================================="
