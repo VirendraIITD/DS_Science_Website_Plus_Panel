@@ -275,38 +275,38 @@ jobs:
 
           npx prisma db execute --stdin <<'SQL'
 
-          SELECT 'banner' AS table_name, COUNT(*) AS row_count
-          FROM "Banner"
+          SELECT 'banners' AS table_name, COUNT(*) AS row_count
+          FROM public.banners
 
           UNION ALL
 
-          SELECT 'statItem', COUNT(*)
-          FROM "StatItem"
+          SELECT 'stat_items', COUNT(*)
+          FROM public.stat_items
 
           UNION ALL
 
-          SELECT 'course', COUNT(*)
-          FROM "Course"
+          SELECT 'courses', COUNT(*)
+          FROM public.courses
 
           UNION ALL
 
-          SELECT 'topper', COUNT(*)
-          FROM "Topper"
+          SELECT 'toppers', COUNT(*)
+          FROM public.toppers
 
           UNION ALL
 
-          SELECT 'whyPoint', COUNT(*)
-          FROM "WhyPoint"
+          SELECT 'why_points', COUNT(*)
+          FROM public.why_points
 
           UNION ALL
 
-          SELECT 'testimonial', COUNT(*)
-          FROM "Testimonial"
+          SELECT 'testimonials', COUNT(*)
+          FROM public.testimonials
 
           UNION ALL
 
           SELECT 'news', COUNT(*)
-          FROM "News"
+          FROM public.news
 
           ORDER BY table_name;
 
