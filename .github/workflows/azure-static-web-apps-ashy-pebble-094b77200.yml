@@ -23,34 +23,35 @@ jobs:
           submodules: true
           lfs: false
 
-      # --------------------------------------------------
-      # Install Node dependencies
-      # --------------------------------------------------
       - name: Install dependencies
         working-directory: ds-academy-web/app
         run: npm ci
 
-      # --------------------------------------------------
-      # Generate Prisma Client
-      # --------------------------------------------------
       - name: Generate Prisma Client
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma generate
 
-      # --------------------------------------------------
-      # Apply production database migrations
-      # --------------------------------------------------
+      - name: Verify database configuration
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "ERROR: DATABASE_URL is not configured"
+            exit 1
+          fi
+          echo "DATABASE_URL is configured"
+
       - name: Deploy Prisma migrations
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
-      # --------------------------------------------------
-      # Build and Deploy Azure Static Web App
-      # --------------------------------------------------
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -60,9 +61,7 @@ jobs:
           action: upload
 
           app_location: "ds-academy-web/app"
-
           api_location: ""
-
           output_location: ".next"
 
   close_pull_request_job:
