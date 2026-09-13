@@ -43,7 +43,30 @@ jobs:
             echo "ERROR: DATABASE_URL is not configured"
             exit 1
           fi
+
           echo "DATABASE_URL is configured"
+
+      - name: Verify production DB permissions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ds-academy-web/app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npx prisma db execute --stdin <<'SQL'
+          SELECT
+            current_user,
+            current_database(),
+            has_schema_privilege(current_user, 'public', 'USAGE') AS has_usage,
+            has_schema_privilege(current_user, 'public', 'CREATE') AS has_create;
+
+          BEGIN;
+
+          CREATE TABLE public.__github_permission_test (
+            id integer
+          );
+
+          ROLLBACK;
+          SQL
 
       - name: Deploy Prisma migrations
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -59,7 +82,6 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ASHY_PEBBLE_094B77200 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-
           app_location: "ds-academy-web/app"
           api_location: ""
           output_location: ".next"
