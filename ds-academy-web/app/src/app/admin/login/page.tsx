@@ -33,7 +33,7 @@ export default async function LoginPage({
           </span>
           <h1 className="mt-3 text-lg font-bold text-white">{settings.instituteName}</h1>
           <p className="mt-1 text-[11px] tracking-widest text-[#8fa0c8]">
-            ADMIN PANEL · powered by Mentora
+            ADMIN PANEL · powered by Team DS Science
           </p>
         </div>
 
@@ -42,7 +42,7 @@ export default async function LoginPage({
         </div>
 
         <p className="mt-5 text-center text-[11.5px] text-[#8fa0c8]">
-          {TIER === 'pro' ? 'Pro' : 'Elite'} v1.0 · Mentora
+          {TIER === 'pro' ? 'Pro' : 'Elite'} v1.0 · 
         </p>
       </div>
     </div>
