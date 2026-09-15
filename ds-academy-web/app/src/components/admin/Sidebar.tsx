@@ -75,7 +75,7 @@ export function Sidebar({
           </div>
 
           <small className="mt-1.5 block text-[10.5px] tracking-wide text-[#8fa0c8]">
-            ADMIN PANEL · powered by Mentora
+            ADMIN PANEL · powered by DS Science Team
           </small>
 
           <span
@@ -136,7 +136,7 @@ export function Sidebar({
         </nav>
 
         <div className="border-t border-navy-600 px-4 py-3 text-[11px] text-[#8fa0c8]">
-          {tier === 'pro' ? 'Pro' : 'Elite'} v1.0 · Mentora
+          {tier === 'pro' ? 'Pro' : 'Elite'} v1.0 · DS Science Team
         </div>
       </aside>
     </>
