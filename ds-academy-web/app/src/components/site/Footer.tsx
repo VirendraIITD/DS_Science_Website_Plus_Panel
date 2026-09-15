@@ -176,7 +176,7 @@ export function Footer({ settings, isPro }: { settings: Settings; isPro: boolean
           <p>
             © {year} {settings.instituteName}. All rights reserved.
           </p>
-          <p className="text-[#8fa0c8]">Website &amp; admin panel powered by Mentora</p>
+          <p className="text-[#8fa0c8]">Website &amp; admin panel powered by DS Science Team</p>
         </div>
       </div>
     </footer>
