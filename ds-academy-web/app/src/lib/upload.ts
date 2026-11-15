@@ -3,24 +3,23 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
-import { createClient } from '@supabase/supabase-js';
+import { BlobServiceClient } from '@azure/storage-blob';
 
 import { slugify } from '@/lib/format';
 
 const MAX_MB = Number(process.env.UPLOAD_MAX_MB || 8);
-const BUCKET = 'uploads';
+const CONTAINER = process.env.AZURE_STORAGE_CONTAINER || 'uploads';
 
-// Built lazily, not at module load: `next build` bundles/evaluates this
-// module while collecting page data for routes that import it (even ones
-// that never call saveUpload), and Railway's build stage has no env vars —
-// an eager createClient() here throws "supabaseUrl is required" at build
-// time. See also (site)/layout.tsx for the same class of issue with Prisma.
-let _supabase: ReturnType<typeof createClient> | null = null;
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+// Built lazily, not at module load, so `next build` (which has no env vars
+// in some CI/Docker build stages) does not throw for routes that import this.
+let _container: ReturnType<BlobServiceClient['getContainerClient']> | null = null;
+function getContainer() {
+  if (!_container) {
+    const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    if (!conn) throw new UploadError('AZURE_STORAGE_CONNECTION_STRING is not set.');
+    _container = BlobServiceClient.fromConnectionString(conn).getContainerClient(CONTAINER);
   }
-  return _supabase;
+  return _container;
 }
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']);
@@ -44,8 +43,8 @@ export type Uploaded = {
 };
 
 /**
- * Uploads to the Supabase Storage `uploads` bucket under `<yyyy-mm>/` and
- * returns its public URL.
+ * Uploads to the Azure Blob Storage `uploads` container under `<yyyy-mm>/`
+ * and returns its public URL.
  */
 export async function saveUpload(file: File, kind: UploadKind): Promise<Uploaded> {
   if (!file || file.size === 0) throw new UploadError('No file received.');
@@ -66,16 +65,17 @@ export async function saveUpload(file: File, kind: UploadKind): Promise<Uploaded
   const filename = `${stem}-${randomBytes(4).toString('hex')}${ext}`;
   const filePath = `${folder}/${filename}`;
 
-  const supabase = getSupabase();
-  const { error } = await supabase.storage.from(BUCKET).upload(filePath, Buffer.from(await file.arrayBuffer()), {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (error) throw new UploadError(error.message);
+  const blob = getContainer().getBlockBlobClient(filePath);
+  try {
+    await blob.uploadData(Buffer.from(await file.arrayBuffer()), {
+      blobHTTPHeaders: { blobContentType: file.type, blobCacheControl: 'public, max-age=31536000, immutable' },
+    });
+  } catch (e) {
+    throw new UploadError(e instanceof Error ? e.message : 'Upload failed.');
+  }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
   return {
-    url: data.publicUrl,
+    url: blob.url,
     sizeKb: Math.round(file.size / 1024),
     name: file.name,
   };
