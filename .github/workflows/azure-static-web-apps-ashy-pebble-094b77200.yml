@@ -1,379 +1,3 @@
-# name: Azure Static Web Apps CI/CD
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-#   pull_request:
-#     types: [opened, synchronize, reopened, closed]
-#     branches:
-#       - main
-
-
-# jobs:
-
-#   # ============================================================
-#   # BUILD + DATABASE MIGRATION + SEED + DEPLOY
-#   # ============================================================
-#   build_and_deploy_job:
-
-#     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-
-#     runs-on: ubuntu-latest
-
-#     name: Build, Migrate, Seed and Deploy
-
-#     steps:
-
-#       # --------------------------------------------------------
-#       # 1. CHECKOUT
-#       # --------------------------------------------------------
-#       - name: Checkout source code
-#         uses: actions/checkout@v4
-#         with:
-#           submodules: true
-#           lfs: false
-
-#       - name: Log checkout information
-#         run: |
-#           echo "=============================================="
-#           echo "CHECKOUT COMPLETE"
-#           echo "=============================================="
-#           echo "Repository: $GITHUB_REPOSITORY"
-#           echo "Branch: $GITHUB_REF_NAME"
-#           echo "Commit: $GITHUB_SHA"
-#           echo "Event: $GITHUB_EVENT_NAME"
-#           echo "Runner OS: $RUNNER_OS"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 2. NODE VERSION
-#       # --------------------------------------------------------
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: 22
-#           cache: npm
-#           cache-dependency-path: ds-academy-web/app/package-lock.json
-
-#       - name: Log Node and npm versions
-#         run: |
-#           echo "=============================================="
-#           echo "NODE ENVIRONMENT"
-#           echo "=============================================="
-#           node --version
-#           npm --version
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 3. INSTALL DEPENDENCIES
-#       # --------------------------------------------------------
-#       - name: Install dependencies
-#         working-directory: ds-academy-web/app
-#         run: |
-#           echo "=============================================="
-#           echo "INSTALLING NPM DEPENDENCIES"
-#           echo "=============================================="
-
-#           npm ci
-
-#           echo "=============================================="
-#           echo "NPM INSTALL COMPLETE"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 4. VERIFY DATABASE SECRET
-#       # --------------------------------------------------------
-#       - name: Verify DATABASE_URL secret
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "VERIFYING DATABASE CONFIGURATION"
-#           echo "=============================================="
-
-#           if [ -z "$DATABASE_URL" ]; then
-#             echo "ERROR: DATABASE_URL GitHub Secret is EMPTY"
-#             exit 1
-#           fi
-
-#           echo "DATABASE_URL secret is configured."
-#           echo "Database password will not be displayed."
-
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 5. GENERATE PRISMA CLIENT
-#       # --------------------------------------------------------
-#       - name: Generate Prisma Client
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "GENERATING PRISMA CLIENT"
-#           echo "=============================================="
-
-#           npx prisma generate
-
-#           echo "=============================================="
-#           echo "PRISMA CLIENT GENERATION COMPLETE"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 6. DATABASE DIAGNOSTIC
-#       # --------------------------------------------------------
-#       - name: Diagnose production database
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "PRODUCTION DATABASE DIAGNOSTIC"
-#           echo "=============================================="
-
-#           echo "Testing database connection and permissions..."
-
-#           npx prisma db execute --stdin <<'SQL'
-
-#           SELECT
-#             current_user AS database_user,
-#             current_database() AS database_name,
-#             current_schema() AS current_schema,
-#             inet_server_addr() AS server_address,
-#             inet_server_port() AS server_port;
-
-#           SELECT
-#             has_database_privilege(
-#               current_user,
-#               current_database(),
-#               'CONNECT'
-#             ) AS has_database_connect,
-
-#             has_schema_privilege(
-#               current_user,
-#               'public',
-#               'USAGE'
-#             ) AS has_public_usage,
-
-#             has_schema_privilege(
-#               current_user,
-#               'public',
-#               'CREATE'
-#             ) AS has_public_create;
-
-#           SELECT
-#             nspname AS schema_name,
-#             nspowner::regrole AS schema_owner,
-#             nspacl AS schema_permissions
-#           FROM pg_namespace
-#           WHERE nspname = 'public';
-
-#           SQL
-
-#           echo "=============================================="
-#           echo "DATABASE DIAGNOSTIC COMPLETE"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 7. TEST ACTUAL CREATE PERMISSION
-#       # --------------------------------------------------------
-#       - name: Test database CREATE permission
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "TESTING PUBLIC SCHEMA CREATE PERMISSION"
-#           echo "=============================================="
-
-#           npx prisma db execute --stdin <<'SQL'
-
-#           BEGIN;
-
-#           CREATE TABLE public.__github_permission_test (
-#             id integer
-#           );
-
-#           SELECT
-#             'CREATE TABLE permission works' AS result;
-
-#           ROLLBACK;
-
-#           SQL
-
-#           echo "=============================================="
-#           echo "CREATE PERMISSION TEST PASSED"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 8. DEPLOY PRISMA MIGRATIONS
-#       # --------------------------------------------------------
-#       - name: Deploy Prisma migrations
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "STARTING PRISMA MIGRATION"
-#           echo "=============================================="
-
-#           npx prisma migrate deploy
-
-#           echo "=============================================="
-#           echo "PRISMA MIGRATION COMPLETED"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 9. SEED PRODUCTION DATABASE
-#       # --------------------------------------------------------
-#       - name: Seed production database
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "STARTING PRODUCTION DATABASE SEED"
-#           echo "=============================================="
-
-#           echo "Running prisma/seed.ts..."
-
-#           npx prisma db seed
-
-#           echo "=============================================="
-#           echo "PRODUCTION DATABASE SEED COMPLETED"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 10. VERIFY SEEDED DATA
-#       # --------------------------------------------------------
-#       - name: Verify production data
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ds-academy-web/app
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#         run: |
-#           echo "=============================================="
-#           echo "VERIFYING PRODUCTION DATA"
-#           echo "=============================================="
-
-#           npx prisma db execute --stdin <<'SQL'
-
-#           SELECT 'banners' AS table_name, COUNT(*) AS row_count
-#           FROM public.banners
-
-#           UNION ALL
-
-#           SELECT 'stat_items', COUNT(*)
-#           FROM public.stat_items
-
-#           UNION ALL
-
-#           SELECT 'courses', COUNT(*)
-#           FROM public.courses
-
-#           UNION ALL
-
-#           SELECT 'toppers', COUNT(*)
-#           FROM public.toppers
-
-#           UNION ALL
-
-#           SELECT 'why_points', COUNT(*)
-#           FROM public.why_points
-
-#           UNION ALL
-
-#           SELECT 'testimonials', COUNT(*)
-#           FROM public.testimonials
-
-#           UNION ALL
-
-#           SELECT 'news', COUNT(*)
-#           FROM public.news
-
-#           ORDER BY table_name;
-
-#           SQL
-
-#           echo "=============================================="
-#           echo "PRODUCTION DATA VERIFICATION COMPLETE"
-#           echo "=============================================="
-
-
-#       # --------------------------------------------------------
-#       # 11. BUILD + DEPLOY AZURE STATIC WEB APP
-#       # --------------------------------------------------------
-#       - name: Build And Deploy
-#         id: builddeploy
-#         uses: Azure/static-web-apps-deploy@v1
-#         with:
-#           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ASHY_PEBBLE_094B77200 }}
-#           repo_token: ${{ secrets.GITHUB_TOKEN }}
-#           action: upload
-
-#           app_location: "ds-academy-web/app"
-#           api_location: ""
-#           output_location: ".next"
-
-
-#       # --------------------------------------------------------
-#       # 12. DEPLOYMENT COMPLETE
-#       # --------------------------------------------------------
-#       - name: Deployment completed
-#         run: |
-#           echo "=============================================="
-#           echo "AZURE STATIC WEB APP DEPLOYMENT COMPLETED"
-#           echo "=============================================="
-#           echo "Application deployment step finished."
-#           echo "=============================================="
-
-
-#   # ============================================================
-#   # CLOSE PULL REQUEST DEPLOYMENT
-#   # ============================================================
-#   close_pull_request_job:
-
-#     if: github.event_name == 'pull_request' && github.event.action == 'closed'
-
-#     runs-on: ubuntu-latest
-
-#     name: Close Pull Request
-
-#     steps:
-
-#       - name: Close Pull Request
-#         id: closepullrequest
-#         uses: Azure/static-web-apps-deploy@v1
-#         with:
-#           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ASHY_PEBBLE_094B77200 }}
-#           action: close
-
-#       - name: Log pull request cleanup
-#         run: |
-#           echo "=============================================="
-#           echo "PULL REQUEST ENVIRONMENT CLOSED"
-#           echo "=============================================="
-
-#--------------------Above used for Migration-----------------------------
-
-
 name: Azure Static Web Apps CI/CD
 
 on:
@@ -386,6 +10,10 @@ on:
     branches:
       - main
 
+# Prisma version used by this project (see ds-academy-web/app/package.json).
+# Pinned so `npx` never downloads a different major version.
+env:
+  PRISMA_VERSION: "5.22.0"
 
 jobs:
 
@@ -413,7 +41,8 @@ jobs:
 
       - name: Log checkout information
         run: |
-          set -e
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: Log checkout information (line $LINENO)"' ERR
           echo "=============================================="
           echo "CHECKOUT COMPLETE"
           echo "=============================================="
@@ -437,6 +66,8 @@ jobs:
 
       - name: Log Node and npm versions
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: Log Node and npm versions (line $LINENO)"' ERR
           echo "=============================================="
           echo "NODE ENVIRONMENT"
           echo "=============================================="
@@ -451,15 +82,41 @@ jobs:
       - name: Install dependencies
         working-directory: ds-academy-web/app
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: npm ci. Check that package.json and package-lock.json are both committed and in sync (line $LINENO)"' ERR
           echo "=============================================="
           echo "INSTALLING NPM DEPENDENCIES"
-          set -e
           echo "=============================================="
 
           npm ci
 
           echo "=============================================="
           echo "NPM INSTALL COMPLETE"
+          echo "=============================================="
+
+      - name: Check installed tools
+        working-directory: ds-academy-web/app
+        run: |
+          set -uo pipefail
+          echo "=============================================="
+          echo "INSTALLED TOOLS CHECK"
+          echo "=============================================="
+          echo "npm omit setting : $(npm config get omit)"
+          echo "NODE_ENV         : ${NODE_ENV:-<not set>}"
+
+          for tool in prisma tsx next; do
+            if [ -x "node_modules/.bin/$tool" ]; then
+              echo "OK      : $tool found in node_modules/.bin"
+            else
+              echo "::warning::MISSING : $tool is NOT in node_modules/.bin (dev dependencies may have been skipped)"
+            fi
+          done
+
+          if ls node_modules/@azure/storage-blob >/dev/null 2>&1; then
+            echo "OK      : @azure/storage-blob installed"
+          else
+            echo "::error::MISSING : @azure/storage-blob is not installed (package-lock.json out of date?)"
+          fi
           echo "=============================================="
 
 
@@ -472,19 +129,19 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: Verify DATABASE_URL secret (line $LINENO)"' ERR
           echo "=============================================="
           echo "VERIFYING DATABASE CONFIGURATION"
-          set -e
           echo "=============================================="
 
           if [ -z "$DATABASE_URL" ]; then
-            echo "ERROR: DATABASE_URL GitHub Secret is EMPTY"
+            echo "::error::DATABASE_URL GitHub Secret is EMPTY. Add it in Settings > Secrets and variables > Actions."
             exit 1
           fi
 
           echo "DATABASE_URL secret is configured."
           echo "Database password will not be displayed."
-
           echo "=============================================="
 
 
@@ -496,12 +153,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: prisma generate (line $LINENO). Check prisma/schema.prisma and the Prisma version."' ERR
           echo "=============================================="
-          echo "GENERATING PRISMA CLIENT"
-          set -e
+          echo "GENERATING PRISMA CLIENT (prisma@${PRISMA_VERSION})"
           echo "=============================================="
 
-          npx prisma generate
+          npx --yes prisma@${PRISMA_VERSION} generate
 
           echo "=============================================="
           echo "PRISMA CLIENT GENERATION COMPLETE"
@@ -517,14 +175,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: database diagnostic (line $LINENO). Check DATABASE_URL, the server firewall (allow Azure services / GitHub runner IPs) and sslmode=require."' ERR
           echo "=============================================="
           echo "PRODUCTION DATABASE DIAGNOSTIC"
-          set -e
           echo "=============================================="
 
           echo "Testing database connection and permissions..."
 
-          npx prisma db execute --stdin <<'SQL'
+          npx --yes prisma@${PRISMA_VERSION} db execute --stdin <<'SQL'
 
           SELECT
             current_user AS database_user,
@@ -575,12 +234,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: CREATE permission test (line $LINENO). The database user cannot create tables in schema public."' ERR
           echo "=============================================="
           echo "TESTING PUBLIC SCHEMA CREATE PERMISSION"
-          set -e
           echo "=============================================="
 
-          npx prisma db execute --stdin <<'SQL'
+          npx --yes prisma@${PRISMA_VERSION} db execute --stdin <<'SQL'
 
           BEGIN;
 
@@ -608,13 +268,15 @@ jobs:
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: prisma migrate deploy (line $LINENO). Check prisma/migrations and the database state."' ERR
           echo "=============================================="
           echo "STARTING PRISMA MIGRATION"
-          set -e
           echo "=============================================="
 
-          npx prisma migrate deploy
+          npx --yes prisma@${PRISMA_VERSION} migrate deploy
 
           echo "=============================================="
           echo "PRISMA MIGRATION COMPLETED"
@@ -623,21 +285,31 @@ jobs:
 
       # --------------------------------------------------------
       # 9. SEED PRODUCTION DATABASE
+      # NOTE: this runs on every push to main. Make sure prisma/seed.ts only
+      # inserts missing rows (upsert / skip-if-exists) so it never overwrites
+      # content edited from the admin panel.
       # --------------------------------------------------------
       - name: Seed production database
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ds-academy-web/app
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: prisma db seed (line $LINENO). Check prisma/seed.ts and that tsx is installed."' ERR
           echo "=============================================="
           echo "STARTING PRODUCTION DATABASE SEED"
-          set -e
           echo "=============================================="
 
-          echo "Running prisma/seed.ts..."
+          # tsx runs prisma/seed.ts. Install it if dev dependencies were skipped.
+          if [ ! -x node_modules/.bin/tsx ]; then
+            echo "tsx not found locally, installing it temporarily..."
+            npm install --no-save tsx@4
+          fi
 
-          npx prisma db seed
+          echo "Running prisma/seed.ts..."
+          npx --yes prisma@${PRISMA_VERSION} db seed
 
           echo "=============================================="
           echo "PRODUCTION DATABASE SEED COMPLETED"
@@ -653,12 +325,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          set -euo pipefail
+          trap 'echo "::error::STEP FAILED: verify production data (line $LINENO). A table name below may not exist; check the table names in prisma/schema.prisma (@@map)."' ERR
           echo "=============================================="
           echo "VERIFYING PRODUCTION DATA"
-          set -e
           echo "=============================================="
 
-          npx prisma db execute --stdin <<'SQL'
+          npx --yes prisma@${PRISMA_VERSION} db execute --stdin <<'SQL'
 
           SELECT 'banners' AS table_name, COUNT(*) AS row_count
           FROM public.banners
@@ -719,15 +392,26 @@ jobs:
 
 
       # --------------------------------------------------------
-      # 12. DEPLOYMENT COMPLETE
+      # 12. DEPLOYMENT RESULT
       # --------------------------------------------------------
       - name: Deployment completed
+        if: success()
         run: |
           echo "=============================================="
           echo "AZURE STATIC WEB APP DEPLOYMENT COMPLETED"
           echo "=============================================="
           echo "Application deployment step finished."
+          echo "Reminder: AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_CONTAINER"
+          echo "must be set in the Azure app Environment variables for uploads to work."
           echo "=============================================="
+
+      - name: Deployment failed
+        if: failure()
+        run: |
+          echo "::error::=============================================="
+          echo "::error::PIPELINE FAILED. Open the failed step above (red X) and read the ERROR line."
+          echo "::error::Common causes: lock file out of sync, wrong DATABASE_URL, DB firewall, seed/migration error."
+          echo "::error::=============================================="
 
 
   # ============================================================
