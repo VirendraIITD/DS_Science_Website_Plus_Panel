@@ -13,11 +13,27 @@ const CONTAINER = process.env.AZURE_STORAGE_CONTAINER || 'uploads';
 // Built lazily, not at module load, so `next build` (which has no env vars
 // in some CI/Docker build stages) does not throw for routes that import this.
 let _container: ReturnType<BlobServiceClient['getContainerClient']> | null = null;
+
+
+
+
+
 function getContainer() {
   if (!_container) {
     const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
     if (!conn) throw new UploadError('AZURE_STORAGE_CONNECTION_STRING is not set.');
-    _container = BlobServiceClient.fromConnectionString(conn).getContainerClient(CONTAINER);
+    
+    try {
+      _container = BlobServiceClient.fromConnectionString(conn).getContainerClient(CONTAINER);
+    } catch (e) {
+      // A malformed value (e.g. missing "DefaultEndpointsProtocol=https;") throws a
+      // plain Error, which the API turns into an unhelpful generic 500.
+      throw new UploadError(
+        `AZURE_STORAGE_CONNECTION_STRING is invalid: ${e instanceof Error ? e.message : 'could not parse it'}. ` +
+          'It must start with "DefaultEndpointsProtocol=https;AccountName=...".',
+      );
+    }
+
   }
   return _container;
 }
